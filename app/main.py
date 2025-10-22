@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.routers import health
 
 app = FastAPI()
 origins = [
@@ -15,10 +16,4 @@ app.add_middleware(
 )
 
 
-@app.get('/')
-def health_check():
-    return {
-  "status_code": 200,
-  "detail": "ok",
-  "result": "working"
-}
+app.include_router(health.router, tags=["Health routes"])
