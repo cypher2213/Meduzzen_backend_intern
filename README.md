@@ -46,7 +46,7 @@ The port value you provide in .env will be used for docker container. Pay attent
 
 **⚠️Attention about variable ORIGINS⚠️**
 
-You can provide one, or multiple adresses. If you won't provide any there will be used a defaul value - `http://localhost:3000`
+You can provide one, or multiple adresses. If you won't provide any there will be used a default value - `http://localhost:3000`
 
 
 
