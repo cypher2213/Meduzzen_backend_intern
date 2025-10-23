@@ -44,7 +44,7 @@ It's better for you to choose HOST 0.0.0.0 so the app can listen on all network 
 
 The port value you provide in .env will be used for docker container. Pay attention to that.
 
-**⚠️Attention about variable ORIGINS**
+**⚠️Attention about variable ORIGINS⚠️**
 
 You can provide one, or multiple adresses. If you won't provide any there will be used a defaul value - `http://localhost:3000`
 
