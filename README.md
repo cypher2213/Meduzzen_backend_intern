@@ -32,10 +32,16 @@ pip install -r requirements.txt`
 
 ## Fourth Step
 
-Copy the structure of env.sample to .env and fill it with your data 
+Copy the structure of env.sample to .env and fill the fields HOST and PORT
 ```bash
 cp .env.sample .env
 ```
+**⚠️Attention about variable HOST⚠️**
+It's better for you to choose HOST 0.0.0.0 so the app can listen on all network interfaces and is accessible outside the container.
+**⚠️Attention about variable PORT⚠️**
+The port value you provide in .env will be used for docker container. Pay attention to that.
+
+
 
 ## Fifth Step 
 
@@ -58,5 +64,9 @@ docker build -t fastapiapp .
 2. **Run your container**
 After building docker image, run command
 ```bash
-docker run -p 8000:8000 fastapiapp
+docker run --env-file .env  -p 8000:8000 fastapiapp 
 ```
+
+**⚠️ATTENTION⚠️**
+
+The second port after the ":" must be the same as you wrote in your .env file
