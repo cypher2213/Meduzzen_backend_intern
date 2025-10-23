@@ -32,7 +32,7 @@ pip install -r requirements.txt`
 
 ## Fourth Step
 
-Copy the structure of env.sample to .env and fill the fields HOST and PORT
+Copy the structure of env.sample to .env and fill the fields HOST,PORT,ORIGINS
 ```bash
 cp .env.sample .env
 ```
@@ -40,6 +40,8 @@ cp .env.sample .env
 It's better for you to choose HOST 0.0.0.0 so the app can listen on all network interfaces and is accessible outside the container.
 **⚠️Attention about variable PORT⚠️**
 The port value you provide in .env will be used for docker container. Pay attention to that.
+**⚠️Attention about variable ORIGINS**
+You can provide one, or multiple adresses. If you won't provide any there will be used a defaul value - `http://localhost:3000`
 
 
 
