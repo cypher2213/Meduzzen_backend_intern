@@ -6,10 +6,10 @@ COPY requirements.txt .
 
 RUN pip install -r requirements.txt
 
-COPY start.sh ./start.sh
 
 COPY . . 
+RUN ["chmod", "+x", "./start.sh"]
 ENV HOST=0.0.0.0
 ENV PORT=8000
 
-ENTRYPOINT ["/app/start.sh"]
+ENTRYPOINT ["./start.sh"]
