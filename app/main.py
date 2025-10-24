@@ -1,13 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
-from dotenv import load_dotenv
 from app.routers import health
-
-load_dotenv()
+from app.core.config import get_settings
 
 app = FastAPI()
-origins = os.getenv("ORIGINS","http://localhost:3000").split(',')
+settings = get_settings()
+origins = settings.origins
 
 app.add_middleware(
   CORSMiddleware,
