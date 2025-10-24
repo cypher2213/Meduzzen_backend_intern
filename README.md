@@ -63,12 +63,6 @@ Open and enjoy
 
 ## How to run your project in Docker
 
-0. **Make start.sh executable**
-
-Open your terminal and type next command
-
-`chmod +x start.sh`
-
 1. **Build your Docker Image** 
 Open your terminal and type command below
 ```bash
