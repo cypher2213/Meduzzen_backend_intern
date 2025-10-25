@@ -9,11 +9,11 @@ async def redis_main():
             answer = await redis_connect.ping()
             if answer:
                 print("Redis successfully connected with async")
+                return True
         except Exception as e:
             print("Failed to connect to the Redis =>", e)
+            return False
             
         
     
     
-if __name__ == "__main__":
-    asyncio.run(redis_main())
