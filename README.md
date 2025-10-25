@@ -54,7 +54,7 @@ You can provide one, or multiple adresses. If you won't provide any there will b
 
 Run your project with command 
 ```bash
-uvicorn app.main:app --reload
+python -m app.main
 ```
 
 ## Sixth Step
@@ -71,7 +71,7 @@ docker build -t fastapiapp .
 2. **Run your container**
 After building docker image, run command
 ```bash
-docker run --env-file .env  -p 8000:8000 fastapiapp 
+docker run -p 8000:8000 fastapiapp 
 ```
 
 **⚠️ATTENTION⚠️**

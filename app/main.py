@@ -1,13 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import os
-from dotenv import load_dotenv
 from app.routers import health
-
-load_dotenv()
+from app.core.config import settings
+import uvicorn
 
 app = FastAPI()
-origins = os.getenv("ORIGINS","http://localhost:3000").split(',')
+
+origins = settings.ORIGINS
 
 app.add_middleware(
   CORSMiddleware,
@@ -19,3 +18,11 @@ app.add_middleware(
 
 
 app.include_router(health.router, tags=["Health routes"])
+
+if __name__ == "__main__":
+    uvicorn.run(
+      "app.main:app",
+      host=settings.HOST,
+      port=settings.PORT,
+      reload=True,
+    )
