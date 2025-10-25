@@ -1,11 +1,9 @@
 from fastapi import APIRouter
-
+from app.services.connect_service import connection_check
 router = APIRouter()
 
 @router.get('/')
-def health_check():
-    return {
-  "status_code": 200,
-  "detail": "ok",
-  "result": "working"
-}
+async def health_check():
+  connection_res = await connection_check()
+  return connection_res
+  
