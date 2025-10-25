@@ -1,13 +1,10 @@
-import os
-from dotenv import load_dotenv
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 import asyncio
+from app.core.config import settings
 
-load_dotenv()
-
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = settings.DATABASE_URL
 engine = create_async_engine(
     DATABASE_URL,
 )
@@ -22,7 +19,7 @@ async def connection_test():
     async with AsyncSessionLocal() as session:
         result = await session.execute(text("SELECT 1"))
         value = result.scalar()
-        print("Success:",value)
+        print("Postgres connected successfully:",value)
 
 asyncio.run(connection_test())
 
