@@ -105,9 +105,10 @@ This command builds the images (if they are not built yet) and starts all servic
 2. **Additional commands**
 
 2.1 If you want to stop your project run this command `docker-compose down`
+
 2.2 If your project was already built, run this command `docker-compose up`
+
 2.3 If your want to stop your project and remove volumes (example: database reset) run command 
 ```bash
 docker-compose down -v
 ```
-
