@@ -1,20 +1,10 @@
-from pydantic_settings import BaseSettings
+from app.core.app_config import App_Config
+from app.core.database_config import DBSettings
+from app.core.redis_config import RedisSettings
 
 
-class Settings(BaseSettings):
-    HOST: str = "0.0.0.0"
-    PORT: int = 8000
-    ORIGINS: list[str] = ["http://localhost:3000"]
-    DATABASE_URL: str
-    REDIS_URL: str
-    REDIS_HOST: str
-    POSTGRES_USER: str
-    POSTGRES_DB: str
-    DOCKER_DATABASE_URL: str
-
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+class Settings(App_Config, DBSettings, RedisSettings):
+    pass
 
 
 settings = Settings()
