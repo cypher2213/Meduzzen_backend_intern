@@ -50,6 +50,18 @@ You can provide one, or multiple adresses. If you won't provide any there will b
 
 
 
+## Linter activation
+
+1. Install Pre-Commit using command `pre-commit install`
+
+This sets up Git hooks to automatically run linters before each commit.
+
+2. Check all of your files using linters with command `pre-commit run --all-files`
+
+Runs Black (code formatting), isort (imports), and Ruff (style and errors) on all files.
+
+Automatically fixes what can be fixed and shows warnings for the rest.
+
 ## Fifth Step 
 
 Run your project with command 
@@ -60,6 +72,10 @@ python -m app.main
 ## Sixth Step
 
 Open and enjoy
+
+## Linter usage
+
+
 
 ## How to run your project in Docker
 
