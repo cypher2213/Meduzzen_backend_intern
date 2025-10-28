@@ -73,8 +73,6 @@ python -m app.main
 
 Open and enjoy
 
-## Linter usage
-
 
 
 ## How to run your project in Docker
