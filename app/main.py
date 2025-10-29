@@ -7,7 +7,7 @@ from app.routers import health
 
 app = FastAPI()
 
-origins = settings.ORIGINS
+origins = settings.app.ORIGINS
 
 app.add_middleware(
     CORSMiddleware,
@@ -23,7 +23,7 @@ app.include_router(health.router, tags=["Health routes"])
 if __name__ == "__main__":
     uvicorn.run(
         "app.main:app",
-        host=settings.HOST,
-        port=settings.PORT,
+        host=settings.app.HOST,
+        port=settings.app.PORT,
         reload=True,
     )
