@@ -1,10 +1,6 @@
-from pydantic_settings import BaseSettings
+from app.core.model_config import BaseConfig
 
 
-class RedisSettings(BaseSettings):
+class RedisSettings(BaseConfig):
     REDIS_URL: str = "redis://localhost:6379/0"
     REDIS_HOST: str = "redis"
-
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"

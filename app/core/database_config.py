@@ -1,13 +1,10 @@
-from pydantic_settings import BaseSettings
+from app.core.model_config import BaseConfig
 
 
-class DBSettings(BaseSettings):
-    DATABASE_URL: str
+class DBSettings(BaseConfig):
     POSTGRES_USER: str
     POSTGRES_DB: str
-    DOCKER_DATABASE_URL: str = "postgresql+asyncpg://nick:@postgres:5432/mydb"
+    POSTGRES_HOST: str = "localhost"
+    POSTGRES_PORT: str
+    POSTGRES_USER: str
     POSTGRES_HOST_AUTH_METHOD: str = "trust"
-
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
