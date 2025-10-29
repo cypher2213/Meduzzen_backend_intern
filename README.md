@@ -48,6 +48,9 @@ The port value you provide in .env will be used for docker container. Pay attent
 
 You can provide one, or multiple adresses. If you won't provide any there will be used a default value - `http://localhost:3000`
 
+## Fifth step
+
+Run migrations with command `alembic upgrade head`
 
 
 ## Linter activation
@@ -62,14 +65,15 @@ Runs Black (code formatting), isort (imports), and Ruff (style and errors) on al
 
 Automatically fixes what can be fixed and shows warnings for the rest.
 
-## Fifth Step 
+
+## Sixth Step 
 
 Run your project with command 
 ```bash
 python -m app.main
 ```
 
-## Sixth Step
+## Seventh Step
 
 Open and enjoy
 
