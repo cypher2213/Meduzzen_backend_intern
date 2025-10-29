@@ -150,9 +150,7 @@ alembic downgrade -1
 ```
 You can rollback multiple steps or to a specific revision.
 
-
 Check the migration state
-
 
 See the current database version
 ```bash
