@@ -7,8 +7,6 @@ services:
 
     env_file:
       - .env
-    environment:
-      - DATABASE_URL=${DOCKER_DATABASE_URL} 
     ports:
       - "8000:8000"
 

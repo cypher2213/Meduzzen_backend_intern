@@ -4,7 +4,7 @@ from sqlalchemy import text
 from app.core.config import settings
 from app.db.session import AsyncSessionLocal
 
-REDIS_URL = settings.REDIS_URL
+REDIS_URL = settings.redis.REDIS_URL
 
 
 async def redis_main():
