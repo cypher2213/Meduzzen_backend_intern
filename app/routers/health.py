@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.services.connect_service import connection_check
+from app.utils.connection_util import connection_check
 
 router = APIRouter()
 
@@ -11,6 +11,6 @@ async def health_check():
 
 
 @router.get("/connection")
-async def redis_connection():
+async def connection_route():
     connection_res = await connection_check()
     return connection_res
