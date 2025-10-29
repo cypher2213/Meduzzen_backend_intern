@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel, EmailStr, Field
 
@@ -6,9 +6,11 @@ from pydantic import BaseModel, EmailStr, Field
 class UserSchema(BaseModel):
     id: int
     name: str
-    password: str = Field(min_length=6)
     age: int = Field(gt=0, le=120)
     email: EmailStr
+
+    class Config:
+        orm_mode = True
 
 
 class SignInSchema(BaseModel):
@@ -16,14 +18,17 @@ class SignInSchema(BaseModel):
     password: str
 
 
-class SignUpSchema(UserSchema):
-    pass
+class SignUpSchema(BaseModel):
+    name: str
+    email: EmailStr
+    password: str = Field(min_length=6)
+    age: int = Field(gt=0, le=120)
 
 
 class UserUpdateSchema(BaseModel):
-    name: str
-    password: str = Field(min_length=6)
-    email: EmailStr
+    name: Optional[str] = None
+    password: Optional[str] = Field(default=None, min_length=6)
+    email: Optional[EmailStr] = None
 
 
 class UsersListSchema(BaseModel):
