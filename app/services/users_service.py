@@ -1,3 +1,4 @@
+from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,5 +20,16 @@ class UserSerivce:
         await session.refresh(user)
         return user
 
+    async def delete_user(self, session: AsyncSession, user_id: int):
+        res = await session.execute(select(UserModel).where(UserModel.id == user_id))
+        user = res.scalar_one_or_none()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
 
-user_serice = UserSerivce()
+        await session.delete(user)
+        await session.commit()
+
+        return {f"message: User with name {user.name} successfully deleted!"}
+
+
+user_service = UserSerivce()
