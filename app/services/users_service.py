@@ -1,8 +1,11 @@
 from fastapi import HTTPException
+from pwdlib import PasswordHash
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.user_model import UserModel
+
+pwd_context = PasswordHash.recommended()
 
 
 class UserSerivce:
@@ -14,6 +17,8 @@ class UserSerivce:
         return users or []
 
     async def create_user(self, session: AsyncSession, user_data: dict):
+        if "password" in user_data:
+            user_data["password"] = pwd_context.hash(user_data["password"])
         user = UserModel(**user_data)
         session.add(user)
         await session.commit()
