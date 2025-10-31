@@ -26,3 +26,8 @@ async def user_create(user: SignUpSchema, session: AsyncSession = Depends(get_se
 @router.delete("/{user_id}")
 async def user_delete(user_id: int, session: AsyncSession = Depends(get_session)):
     return await user_service.delete_user(session, user_id)
+
+
+@router.get("/{user_id}")
+async def user_by_id(user_id: int, session: AsyncSession = Depends(get_session)):
+    return await user_service.get_user_by_id(session, user_id)
