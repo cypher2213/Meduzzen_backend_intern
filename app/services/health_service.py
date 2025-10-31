@@ -5,11 +5,11 @@ from app.core.config import settings
 from app.core.logger import logger
 from app.db.session import AsyncSessionLocal
 
-REDIS_URL = settings.redis.REDIS_URL
-
 
 async def redis_main():
-    async with redis.from_url(REDIS_URL, decode_responses=True) as redis_connect:
+    async with redis.from_url(
+        settings.redis.url, decode_responses=True
+    ) as redis_connect:
         try:
             answer = await redis_connect.ping()
             if answer:
