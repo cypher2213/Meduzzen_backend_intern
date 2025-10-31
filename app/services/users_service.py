@@ -43,5 +43,25 @@ class UserSerivce:
             raise HTTPException(status_code=404, detail="User not found")
         return {"message": "User Found", "user": {user}}
 
+    async def update_user(
+        self, user_id: int, updated_user: dict, session: AsyncSession
+    ):
+        res = await session.execute(select(UserModel).where(UserModel.id == user_id))
+        user = res.scalar_one_or_none()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        if "password" in updated_user:
+            new_pswrd = updated_user.pop("password")
+            if new_pswrd is not None:
+                updated_user["password"] = pwd_context.hash(str(new_pswrd))
+        filtered_data = {k: v for k, v in updated_user.items() if v is not None}
+        for key, value in filtered_data.items():
+            setattr(user, key, value)
+
+        await session.commit()
+        await session.refresh(user)
+        return user
+
 
 user_service = UserSerivce()
