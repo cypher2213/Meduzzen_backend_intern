@@ -31,5 +31,12 @@ class UserSerivce:
 
         return {f"message: User with name {user.name} successfully deleted!"}
 
+    async def get_user_by_id(self, session: AsyncSession, user_id: int):
+        res = await session.execute(select(UserModel).where(UserModel.id == user_id))
+        user = res.scalar_one_or_none()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return {"message": "User Found", "user": {user}}
+
 
 user_service = UserSerivce()
