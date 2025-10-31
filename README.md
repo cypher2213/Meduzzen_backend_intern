@@ -93,7 +93,7 @@ docker run -p 8000:8000 fastapiapp
 The second port after the ":" must be the same as you wrote in your .env file
 
 
-Also do not forgeg to change `POSTGRES_HOST` variable in your .env file to `postgres` so the docker can connect to the database (It's `localhost` by default)
+Also do not forget to change `POSTGRES_HOST` variable in your .env file to `postgres` so the docker can connect to the database (It's `localhost` by default)
 
 ## How to run your project with Docker-Composer
 
