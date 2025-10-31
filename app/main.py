@@ -7,11 +7,10 @@ from app.routers import health
 
 app = FastAPI()
 
-origins = settings.app.ORIGINS
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=settings.app.ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
