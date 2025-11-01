@@ -6,5 +6,11 @@ class DBSettings(BaseConfig):
     POSTGRES_DB: str
     POSTGRES_HOST: str = "localhost"
     POSTGRES_PORT: str
-    POSTGRES_USER: str
-    POSTGRES_HOST_AUTH_METHOD: str = "trust"
+
+    @property
+    def url(self) -> str:
+        return (
+            f"postgresql+asyncpg://{self.POSTGRES_USER}@"
+            f"{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/"
+            f"{self.POSTGRES_DB}"
+        )
