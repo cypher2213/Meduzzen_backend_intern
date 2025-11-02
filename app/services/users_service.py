@@ -3,6 +3,7 @@ from pwdlib import PasswordHash
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.logger import logger
 from app.db.user_model import UserModel
 
 pwd_context = PasswordHash.recommended()
@@ -23,17 +24,20 @@ class UserSerivce:
         session.add(user)
         await session.commit()
         await session.refresh(user)
+        logger.info(f"User created: id={user.id}, username={user.username}")
         return user
 
     async def delete_user(self, session: AsyncSession, user_id: int):
         res = await session.execute(select(UserModel).where(UserModel.id == user_id))
         user = res.scalar_one_or_none()
         if not user:
+            logger.warning(f"Attempted delete — user not found: id={user_id}")
             raise HTTPException(status_code=404, detail="User not found")
 
         await session.delete(user)
         await session.commit()
 
+        logger.info(f"User deleted: id={user_id}, username={user.username}")
         return {f"message: User with name {user.name} successfully deleted!"}
 
     async def get_user_by_id(self, session: AsyncSession, user_id: int):
@@ -61,6 +65,10 @@ class UserSerivce:
 
         await session.commit()
         await session.refresh(user)
+        if user:
+            logger.info(f"User updated: id={user.id}")
+        else:
+            logger.warning(f"Attempted update — user not found: id={user_id}")
         return user
 
 
