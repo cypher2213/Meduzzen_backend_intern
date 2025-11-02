@@ -3,11 +3,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
+from app.core.error_middleware import error_middleware
 from app.routers import health, users
 
 app = FastAPI()
 
-
+app.middleware("http")(error_middleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.app.ORIGINS,
