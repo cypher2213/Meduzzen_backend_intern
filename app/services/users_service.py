@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logger import logger
 from app.db.user_model import UserModel
+from app.utils.jwt_util import create_access_token
 
 pwd_context = PasswordHash.recommended()
 
@@ -70,6 +71,20 @@ class UserSerivce:
         else:
             logger.warning(f"Attempted update — user not found: id={user_id}")
         return user
+
+    async def login_user(self, user_data: dict, session: AsyncSession):
+        email = user_data.get("email")
+        password = user_data.get("password")
+        res = await session.execute(select(UserModel).where(UserModel.email == email))
+        user = res.scalar_one_or_none()
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+
+        if not pwd_context.verify(password, user.password):
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+
+        token = create_access_token({"sub": user.email})
+        return {"access_token": token, "token_type": "bearer"}
 
 
 user_service = UserSerivce()
