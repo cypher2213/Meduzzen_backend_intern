@@ -24,7 +24,7 @@ class UserSerivce:
         session.add(user)
         await session.commit()
         await session.refresh(user)
-        logger.info(f"User created: id={user.id}, username={user.username}")
+        logger.info(f"User created: id={user.id}, name={user.name}")
         return user
 
     async def delete_user(self, session: AsyncSession, user_id: int):
@@ -37,7 +37,7 @@ class UserSerivce:
         await session.delete(user)
         await session.commit()
 
-        logger.info(f"User deleted: id={user_id}, username={user.username}")
+        logger.info(f"User deleted: id={user_id}, name={user.name}")
         return {f"message: User with name {user.name} successfully deleted!"}
 
     async def get_user_by_id(self, session: AsyncSession, user_id: int):
