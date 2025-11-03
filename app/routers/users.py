@@ -4,8 +4,15 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_session
-from app.schemas.user_schema import SignUpSchema, UserSchema, UserUpdateSchema
+from app.db.user_model import UserModel
+from app.schemas.user_schema import (
+    SignInSchema,
+    SignUpSchema,
+    UserSchema,
+    UserUpdateSchema,
+)
 from app.services.users_service import user_service
+from app.utils.jwt_util import get_me
 
 router = APIRouter()
 
@@ -23,6 +30,11 @@ async def user_create(user: SignUpSchema, session: AsyncSession = Depends(get_se
     return await user_service.create_user(session, user.model_dump())
 
 
+@router.get("/me")
+async def get_current_user(user: UserModel = Depends(get_me)):
+    return {"message": f"Hello,{user.name}.You are authenticated successfully!"}
+
+
 @router.delete("/{user_id}")
 async def user_delete(user_id: int, session: AsyncSession = Depends(get_session)):
     return await user_service.delete_user(session, user_id)
@@ -38,3 +50,8 @@ async def user_update(
     user_id: int, user: UserUpdateSchema, session: AsyncSession = Depends(get_session)
 ):
     return await user_service.update_user(user_id, user.model_dump(), session)
+
+
+@router.post("/login")
+async def user_login(user: SignInSchema, session: AsyncSession = Depends(get_session)):
+    return await user_service.login_user(user.model_dump(), session)
