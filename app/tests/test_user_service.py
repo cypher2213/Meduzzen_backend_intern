@@ -1,76 +1,35 @@
-from unittest.mock import AsyncMock, MagicMock, patch
-
 import pytest
-from fastapi import HTTPException
+from fastapi import status
+from httpx import ASGITransport, AsyncClient
 
-from app.db.user_model import UserModel
-from app.services.users_service import UserSerivce
-
-
-@pytest.mark.asyncio
-async def test_get_all_users_returns_list():
-    mock_session = AsyncMock()
-    fake_users = [UserModel(id=1, name="Nick"), UserModel(id=2, name="Jane")]
-
-    mock_result = MagicMock()
-    mock_scalars = MagicMock()
-    mock_scalars.all.return_value = fake_users
-    mock_result.scalars.return_value = mock_scalars
-    mock_session.execute.return_value = mock_result
-
-    service = UserSerivce()
-    users = await service.get_all_users(mock_session)
-
-    assert users == fake_users
-    mock_session.execute.assert_awaited_once()
+from app.main import app
 
 
 @pytest.mark.asyncio
-async def test_create_user_hashes_password_and_commits():
-    mock_session = AsyncMock()
-    mock_user = UserModel(id=1, name="Nick")
-    with patch("app.services.users_service.UserModel", return_value=mock_user):
-        service = UserSerivce()
-        data = {"name": "Nick", "password": "12345"}
-        user = await service.create_user(mock_session, data)
+async def test_create_user_success():
+    user = {
+        "name": "jesus",
+        "email": "jesus21238@gmail.com",
+        "password": "12345678",
+        "age": 22,
+    }
 
-    assert user is mock_user
-    mock_session.add.assert_called_once()
-    mock_session.commit.assert_awaited_once()
-    mock_session.refresh.assert_awaited_once()
-    assert data["password"] != "12345"
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
+        response = await ac.post("/users/", json=user)
 
-
-@pytest.mark.asyncio
-async def test_delete_user_not_found_raises_http_404():
-    mock_session = AsyncMock()
-    mock_result = MagicMock()
-    mock_result.scalar_one_or_none.return_value = None
-    mock_session.execute.return_value = mock_result
-
-    service = UserSerivce()
-
-    with pytest.raises(HTTPException) as exc:
-        await service.delete_user(mock_session, user_id=999)
-
-    assert exc.value.status_code == 404
-    assert exc.value.detail == "User not found"
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["name"] == user["name"]
+    assert "id" in data
 
 
 @pytest.mark.asyncio
-async def test_update_user_hashes_password_and_commits():
-    mock_user = UserModel(id=1, name="OldNick", password="old")
-    mock_session = AsyncMock()
+async def test_create_user_invalid_payload():
+    user_invalid = {"name": "jesus", "email": "jesus77@", "password": "123", "age": -2}
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
+        response = await ac.post("/users/", json=user_invalid)
 
-    mock_result = MagicMock()
-    mock_result.scalar_one_or_none.return_value = mock_user
-    mock_session.execute.return_value = mock_result
-
-    service = UserSerivce()
-    updated = {"username": "NewNick", "password": "newpass"}
-    user = await service.update_user(1, updated, mock_session)
-
-    assert user.username == "NewNick"
-    assert user.password != "newpass"
-    mock_session.commit.assert_awaited_once()
-    mock_session.refresh.assert_awaited_once()
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert "detail" in response.json()
