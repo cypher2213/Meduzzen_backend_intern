@@ -26,7 +26,7 @@ class UserService:
             return json.loads(cached_data)
         users = await self.repo.get_all(session, limit, offset)
         if users:
-            user_list = [UserSchema.from_orm(user).model_dump() for user in users]
+            user_list = [UserSchema.model_validate(user).model_dump() for user in users]
             await redis.set(cache_key, json.dumps(user_list), ex=300)
             logger.info("Users cached in redis")
         return users or []
@@ -38,7 +38,6 @@ class UserService:
         await redis.delete(f"user:{user.id}")
         async for key in redis.scan_iter("users:*"):
             await redis.delete(key)
-
         logger.info(f"User created: id={user.id}, name={user.name}")
         return user
 
@@ -63,7 +62,8 @@ class UserService:
         user = await self.repo.get_by_id(session, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-        await redis.set(cache_key, json.dumps(user.as_dict()), ex=300)
+        user_dict = UserSchema.model_validate(user).model_dump()
+        await redis.set(cache_key, json.dumps(user_dict), ex=300)
         logger.info("User cached in redis")
         return {"message": "User Found", "user": user}
 
