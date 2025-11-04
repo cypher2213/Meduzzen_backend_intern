@@ -9,8 +9,7 @@ class UserSchema(BaseModel):
     age: int = Field(gt=0, le=120)
     email: EmailStr
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 
 class SignInSchema(BaseModel):
