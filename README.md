@@ -91,3 +91,27 @@ docker run -p 8000:8000 fastapiapp
 **⚠️ATTENTION⚠️**
 
 The second port after the ":" must be the same as you wrote in your .env file
+
+
+Also do not forget to change `POSTGRES_HOST` variable in your .env file to `postgres` so the docker can connect to the database (It's `localhost` by default)
+
+## How to run your project with Docker-Composer
+
+1.**Build Docker-Composer**
+
+Open your terminal and type command
+```bash
+docker-compose up --build
+```
+This command builds the images (if they are not built yet) and starts all services defined in docker-compose.yml.
+
+2. **Additional commands**
+
+2.1 If you want to stop your project run this command `docker-compose down`
+
+2.2 If your project was already built, run this command `docker-compose up`
+
+2.3 If your want to stop your project and remove volumes (example: database reset) run command 
+```bash
+docker-compose down -v
+```

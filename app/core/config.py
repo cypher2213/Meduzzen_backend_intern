@@ -1,14 +1,14 @@
 from pydantic_settings import BaseSettings
 
+from app.core.app_config import AppConfig
+from app.core.database_config import DBSettings
+from app.core.redis_config import RedisSettings
+
 
 class Settings(BaseSettings):
-    HOST: str = "0.0.0.0"
-    PORT: int = 8000
-    ORIGINS: list[str] = ["http://localhost:3000"]
-
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    app: AppConfig = AppConfig()
+    db: DBSettings = DBSettings()
+    redis: RedisSettings = RedisSettings()
 
 
 settings = Settings()
