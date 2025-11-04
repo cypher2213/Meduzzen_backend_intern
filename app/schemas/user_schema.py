@@ -27,7 +27,6 @@ class SignUpSchema(BaseModel):
 
 class UserUpdateSchema(BaseModel):
     name: Optional[str] = None
-    password: Optional[str] = Field(default=None, min_length=6)
     email: Optional[EmailStr] = None
     age: Optional[int] = None
 
