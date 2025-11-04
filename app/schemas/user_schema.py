@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class UserSchema(BaseModel):
@@ -29,6 +29,7 @@ class UserUpdateSchema(BaseModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
     age: Optional[int] = None
+    model_config = ConfigDict(extra="forbid")
 
 
 class UsersListSchema(BaseModel):
