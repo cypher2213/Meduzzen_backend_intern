@@ -1,75 +1,59 @@
 from fastapi import HTTPException
 from pwdlib import PasswordHash
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logger import logger
-from app.db.user_model import UserModel
+from app.db.users_repository import UserRepository
 
 pwd_context = PasswordHash.recommended()
 
 
 class UserSerivce:
+    def __init__(self):
+        self.repo = UserRepository()
+
     async def get_all_users(
         self, session: AsyncSession, limit: int = 10, offset: int = 0
     ):
-        res = await session.execute(select(UserModel).limit(limit).offset(offset))
-        users = res.scalars().all()
+        users = await self.repo.get_all(session, limit, offset)
         return users or []
 
     async def create_user(self, session: AsyncSession, user_data: dict):
         if "password" in user_data:
             user_data["password"] = pwd_context.hash(user_data["password"])
-        user = UserModel(**user_data)
-        session.add(user)
-        await session.commit()
-        await session.refresh(user)
+        user = await self.repo.create(session, user_data)
         logger.info(f"User created: id={user.id}, name={user.name}")
         return user
 
-    async def delete_user(self, session: AsyncSession, user_id: int):
-        res = await session.execute(select(UserModel).where(UserModel.id == user_id))
-        user = res.scalar_one_or_none()
+    async def delete_user(self, session, user_id: int):
+        user = await self.repo.get_by_id(session, user_id)
         if not user:
             logger.warning(f"Attempted delete — user not found: id={user_id}")
             raise HTTPException(status_code=404, detail="User not found")
-
-        await session.delete(user)
-        await session.commit()
-
+        await self.repo.delete(session, user)
         logger.info(f"User deleted: id={user_id}, name={user.name}")
-        return {f"message: User with name {user.name} successfully deleted!"}
+        return {"message": f"User with name {user.name} successfully deleted!"}
 
-    async def get_user_by_id(self, session: AsyncSession, user_id: int):
-        res = await session.execute(select(UserModel).where(UserModel.id == user_id))
-        user = res.scalar_one_or_none()
+    async def get_user_by_id(self, session, user_id: int):
+        user = await self.repo.get_by_id(session, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-        return {"message": "User Found", "user": {user}}
+        return {"message": "User Found", "user": user}
 
-    async def update_user(
-        self, user_id: int, updated_user: dict, session: AsyncSession
-    ):
-        res = await session.execute(select(UserModel).where(UserModel.id == user_id))
-        user = res.scalar_one_or_none()
+    async def update_user(self, user_id: int, updated_user: dict, session):
+        user = await self.repo.get_by_id(session, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
         filtered_data = {k: v for k, v in updated_user.items() if v is not None}
-        for key, value in filtered_data.items():
-            setattr(user, key, value)
+        updated_user_obj = await self.repo.update(session, user, filtered_data)
 
-        await session.commit()
-        await session.refresh(user)
-        if user:
-            logger.info(f"User updated: id={user.id}")
-        else:
-            logger.warning(f"Attempted update — user not found: id={user_id}")
+        logger.info(f"User updated: id={user.id}")
         return {
             "message": "User updated successfully",
-            "id": user.id,
-            "name": user.name,
-            "email": user.email,
+            "id": updated_user_obj.id,
+            "name": updated_user_obj.name,
+            "email": updated_user_obj.email,
         }
 
 
