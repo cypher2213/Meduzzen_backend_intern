@@ -55,10 +55,6 @@ class UserSerivce:
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
-        if "password" in updated_user:
-            new_pswrd = updated_user.pop("password")
-            if new_pswrd is not None:
-                updated_user["password"] = pwd_context.hash(str(new_pswrd))
         filtered_data = {k: v for k, v in updated_user.items() if v is not None}
         for key, value in filtered_data.items():
             setattr(user, key, value)
@@ -69,7 +65,12 @@ class UserSerivce:
             logger.info(f"User updated: id={user.id}")
         else:
             logger.warning(f"Attempted update — user not found: id={user_id}")
-        return user
+        return {
+            "message": "User updated successfully",
+            "id": user.id,
+            "name": user.name,
+            "email": user.email,
+        }
 
 
 user_service = UserSerivce()
