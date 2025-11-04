@@ -8,7 +8,7 @@ services:
     env_file:
       - .env
     ports:
-      - "8000:8000"
+      - "${PORT}:${PORT}"
 
     depends_on:
       - postgres
@@ -21,7 +21,7 @@ services:
     env_file:
       - .env
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
     volumes:
       - pg_data:/var/lib/postgresql/data
     restart: always
@@ -31,7 +31,7 @@ services:
     image: redis:8
     container_name: redis
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT}:${REDIS_PORT}"
     volumes:
       - redis_data:/data
     restart: always
