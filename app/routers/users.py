@@ -1,4 +1,5 @@
 from typing import List
+from uuid import UUID
 
 from fastapi import APIRouter, Depends
 from redis.asyncio import Redis
@@ -33,7 +34,7 @@ async def user_create(
 
 @router.delete("/{user_id}")
 async def user_delete(
-    user_id: int,
+    user_id: UUID,
     session: AsyncSession = Depends(get_session),
     redis: Redis = Depends(get_redis),
 ):
@@ -42,7 +43,7 @@ async def user_delete(
 
 @router.get("/{user_id}")
 async def user_by_id(
-    user_id: int,
+    user_id: UUID,
     session: AsyncSession = Depends(get_session),
     redis: Redis = Depends(get_redis),
 ):
@@ -51,7 +52,7 @@ async def user_by_id(
 
 @router.patch("/{user_id}")
 async def user_update(
-    user_id: int,
+    user_id: UUID,
     user: UserUpdateSchema,
     session: AsyncSession = Depends(get_session),
     redis: Redis = Depends(get_redis),
