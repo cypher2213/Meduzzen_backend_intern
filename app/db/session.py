@@ -1,3 +1,4 @@
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -15,3 +16,10 @@ AsyncSessionLocal = sessionmaker(
 async def get_session():
     async with AsyncSessionLocal() as session:
         yield session
+
+
+redis_client = Redis.from_url(settings.redis.url, decode_responses=True)
+
+
+async def get_redis() -> Redis:
+    return redis_client
