@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.jwt_config import jwt_settings
 from app.db.session import get_session
-from app.db.user_model import UserModel
+from app.models.user_model import UserModel
 
 SECRET_KEY = jwt_settings.SECRET_KEY
 ALGORITHM = jwt_settings.ALGORITHM

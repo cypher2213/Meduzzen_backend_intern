@@ -30,3 +30,10 @@ class UserRepository:
         await session.commit()
         await session.refresh(user)
         return user
+
+    async def get_by_email(self, session: AsyncSession, email: str):
+        result = await session.execute(
+            select(UserModel).where(UserModel.email == email)
+        )
+        user = result.scalars().first()
+        return user

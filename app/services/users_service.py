@@ -8,8 +8,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logger import logger
-from app.db.user_model import UserModel
 from app.db.users_repository import UserRepository
+from app.models.user_model import UserModel
 from app.schemas.user_schema import UserSchema
 from app.utils.jwt_util import create_access_token
 

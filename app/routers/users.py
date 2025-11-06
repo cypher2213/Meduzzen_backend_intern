@@ -6,7 +6,7 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_redis, get_session
-from app.db.user_model import UserModel
+from app.decorators.auth0_decorator import require_auth
 from app.schemas.user_schema import (
     SignInSchema,
     SignUpSchema,
@@ -14,7 +14,6 @@ from app.schemas.user_schema import (
     UserUpdateSchema,
 )
 from app.services.users_service import user_service
-from app.utils.jwt_util import get_me
 
 router = APIRouter()
 
@@ -40,8 +39,9 @@ async def user_create(
 
 
 @router.get("/me")
-async def get_current_user(user: UserModel = Depends(get_me)):
-    return {"message": f"Hello,{user.name}.You are authenticated successfully!"}
+@require_auth
+async def get_current_user(request, current_user):
+    return {"message": f"Hello,{current_user.name}.You are authenticated successfully!"}
 
 
 @router.delete("/{user_id}")
