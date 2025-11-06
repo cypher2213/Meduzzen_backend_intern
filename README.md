@@ -160,7 +160,7 @@ See the current database version
 alembic current
 ```
 
-**TESTS*
+**TESTS**
 
 If you want to run service tests firstly install requirements from test-requirements.txt
 ```bash
