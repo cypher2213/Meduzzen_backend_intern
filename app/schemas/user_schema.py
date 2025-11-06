@@ -1,10 +1,11 @@
 from typing import List, Optional
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class UserSchema(BaseModel):
-    id: int
+    id: UUID
     name: str
     age: int = Field(gt=0, le=120)
     email: EmailStr

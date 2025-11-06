@@ -1,4 +1,5 @@
 import json
+from uuid import UUID
 
 from fastapi import HTTPException
 from pwdlib import PasswordHash
@@ -29,7 +30,10 @@ class UserService:
             return json.loads(cached_data)
         users = await self.repo.get_all(session, limit, offset)
         if users:
-            user_list = [UserSchema.model_validate(user).model_dump() for user in users]
+            user_list = [
+                UserSchema.model_validate(user).model_dump(mode="json")
+                for user in users
+            ]
             await redis.set(cache_key, json.dumps(user_list), ex=300)
             logger.info("Users cached in redis")
         return users or []
@@ -44,7 +48,7 @@ class UserService:
         logger.info(f"User created: id={user.id}, name={user.name}")
         return user
 
-    async def delete_user(self, session: AsyncSession, user_id: int, redis: Redis):
+    async def delete_user(self, session: AsyncSession, user_id: UUID, redis: Redis):
         user = await self.repo.get_by_id(session, user_id)
         if not user:
             logger.warning(f"Attempted delete — user not found: id={user_id}")
@@ -56,7 +60,7 @@ class UserService:
         logger.info(f"User deleted: id={user_id}, name={user.name}")
         return {"message": f"User with name {user.name} successfully deleted!"}
 
-    async def get_user_by_id(self, session: AsyncSession, user_id: int, redis: Redis):
+    async def get_user_by_id(self, session: AsyncSession, user_id: UUID, redis: Redis):
         cache_key = f"user:{user_id}"
         cached_data = await redis.get(cache_key)
         if cached_data:
@@ -65,13 +69,13 @@ class UserService:
         user = await self.repo.get_by_id(session, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-        user_dict = UserSchema.model_validate(user).model_dump()
+        user_dict = UserSchema.model_validate(user).model_dump(mode="json")
         await redis.set(cache_key, json.dumps(user_dict), ex=300)
         logger.info("User cached in redis")
         return {"message": "User Found", "user": user}
 
     async def update_user(
-        self, user_id: int, updated_user: dict, session: AsyncSession, redis: Redis
+        self, user_id: UUID, updated_user: dict, session: AsyncSession, redis: Redis
     ):
         user = await self.repo.get_by_id(session, user_id)
         if not user:
