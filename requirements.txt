@@ -10,3 +10,4 @@ uvicorn==0.38.0
 black==25.9.0
 isort==7.0.0
 ruff==0.14.2
+alembic==1.17.1

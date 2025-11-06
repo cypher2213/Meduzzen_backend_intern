@@ -48,6 +48,9 @@ The port value you provide in .env will be used for docker container. Pay attent
 
 You can provide one, or multiple adresses. If you won't provide any there will be used a default value - `http://localhost:3000`
 
+## Fifth step
+
+Run migrations with command `alembic upgrade head`
 
 
 ## Linter activation
@@ -62,14 +65,15 @@ Runs Black (code formatting), isort (imports), and Ruff (style and errors) on al
 
 Automatically fixes what can be fixed and shows warnings for the rest.
 
-## Fifth Step 
+
+## Sixth Step 
 
 Run your project with command 
 ```bash
 python -m app.main
 ```
 
-## Sixth Step
+## Seventh Step
 
 Open and enjoy
 
@@ -115,3 +119,44 @@ This command builds the images (if they are not built yet) and starts all servic
 ```bash
 docker-compose down -v
 ```
+
+# Process of creating and applying migrations
+
+1.Initialize Alembic in your project:
+```bash
+alembic init app/migrations
+```
+
+2.Create a new migration
+```bash
+alembic revision --autogenerate 
+```
+
+3.Review the migration
+
+Open the migration file and check that Alembic generated the correct operations.
+
+4. Apply the migration
+
+To update the database to the latest version:
+```bash
+alembic upgrade head
+```
+
+**Extra**
+
+Rollback a migration (if needed)
+
+To revert to the previous version:
+```bash
+alembic downgrade -1
+```
+You can rollback multiple steps or to a specific revision.
+
+Check the migration state
+
+See the current database version
+```bash
+alembic current
+```
+
