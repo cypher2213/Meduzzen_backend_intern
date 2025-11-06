@@ -164,7 +164,7 @@ alembic current
 
 If you want to run service tests firstly install requirements from test-requirements.txt
 ```bash
-pip install -r test-requirements.txt`
+pip install -r test-requirements.txt
 ```
 Then paste the command to run your service tests
 
