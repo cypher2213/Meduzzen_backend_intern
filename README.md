@@ -160,3 +160,17 @@ See the current database version
 alembic current
 ```
 
+**TESTS**
+
+If you want to run service tests firstly install requirements from test-requirements.txt
+```bash
+pip install -r test-requirements.txt
+```
+Then paste the command to run your service tests
+
+```bash
+PYTHONPATH=. pytest -v   
+```
+
+
+

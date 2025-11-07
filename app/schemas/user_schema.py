@@ -1,7 +1,7 @@
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class UserSchema(BaseModel):
@@ -10,8 +10,7 @@ class UserSchema(BaseModel):
     age: int = Field(gt=0, le=120)
     email: EmailStr
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 
 class SignInSchema(BaseModel):
@@ -30,6 +29,7 @@ class UserUpdateSchema(BaseModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
     age: Optional[int] = None
+    model_config = ConfigDict(extra="forbid")
 
 
 class UsersListSchema(BaseModel):
