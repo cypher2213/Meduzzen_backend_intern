@@ -2,10 +2,9 @@ from typing import List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
-from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import get_redis, get_session
+from app.db.session import get_session
 from app.schemas.user_schema import SignUpSchema, UserSchema, UserUpdateSchema
 from app.services.users_service import user_service
 
@@ -17,9 +16,8 @@ async def get_users(
     limit: int = 10,
     offset: int = 0,
     session: AsyncSession = Depends(get_session),
-    redis: Redis = Depends(get_redis),
 ):
-    users = await user_service.get_all_users(session, redis, limit, offset)
+    users = await user_service.get_all_users(session, limit, offset)
     return users
 
 
@@ -27,27 +25,24 @@ async def get_users(
 async def user_create(
     user: SignUpSchema,
     session: AsyncSession = Depends(get_session),
-    redis: Redis = Depends(get_redis),
 ):
-    return await user_service.create_user(session, user.model_dump(), redis)
+    return await user_service.create_user(session, user)
 
 
 @router.delete("/{user_id}")
 async def user_delete(
     user_id: UUID,
     session: AsyncSession = Depends(get_session),
-    redis: Redis = Depends(get_redis),
 ):
-    return await user_service.delete_user(session, user_id, redis)
+    return await user_service.delete_user(session, user_id)
 
 
 @router.get("/{user_id}")
 async def user_by_id(
     user_id: UUID,
     session: AsyncSession = Depends(get_session),
-    redis: Redis = Depends(get_redis),
 ):
-    return await user_service.get_user_by_id(session, user_id, redis)
+    return await user_service.get_user_by_id(session, user_id)
 
 
 @router.patch("/{user_id}")
@@ -55,6 +50,5 @@ async def user_update(
     user_id: UUID,
     user: UserUpdateSchema,
     session: AsyncSession = Depends(get_session),
-    redis: Redis = Depends(get_redis),
 ):
-    return await user_service.update_user(user_id, user.model_dump(), session, redis)
+    return await user_service.update_user(user_id, user, session)
