@@ -29,7 +29,7 @@ class UserService:
     async def create_user(self, session: AsyncSession, user_data: SignUpSchema):
         if "password" in user_data:
             user_data["password"] = pwd_context.hash(user_data["password"])
-        user = await self.repo.create(session, user_data)
+        user = await self.repo.create(session, user_data.model_dump())
         logger.info(f"User created: id={user.id}, name={user.name}")
         return user
 
@@ -54,7 +54,7 @@ class UserService:
         user = await self.repo.get_by_id(session, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-        filtered_data = {k: v for k, v in updated_user.items() if v is not None}
+        filtered_data = updated_user.model_dump(exclude_none=True)
         updated_user_obj = await self.repo.update(session, user, filtered_data)
         logger.info(f"User updated: id={user.id}")
         return {

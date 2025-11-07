@@ -26,7 +26,7 @@ async def user_create(
     user: SignUpSchema,
     session: AsyncSession = Depends(get_session),
 ):
-    return await user_service.create_user(session, user.model_dump())
+    return await user_service.create_user(session, user)
 
 
 @router.delete("/{user_id}")
@@ -51,4 +51,4 @@ async def user_update(
     user: UserUpdateSchema,
     session: AsyncSession = Depends(get_session),
 ):
-    return await user_service.update_user(user_id, user.model_dump(), session)
+    return await user_service.update_user(user_id, user, session)
