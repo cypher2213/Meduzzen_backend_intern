@@ -31,9 +31,6 @@ class UserRepository:
         await session.refresh(user)
         return user
 
-    async def get_by_email(self, session: AsyncSession, email: str):
-        result = await session.execute(
-            select(UserModel).where(UserModel.email == email)
-        )
-        user = result.scalars().first()
-        return user
+    async def get_by_email(self, session: AsyncSession, email: str) -> UserModel | None:
+        res = await session.execute(select(UserModel).where(UserModel.email == email))
+        return res.scalar_one_or_none()

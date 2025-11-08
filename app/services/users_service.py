@@ -2,11 +2,9 @@ from uuid import UUID
 
 from fastapi import HTTPException
 from pwdlib import PasswordHash
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logger import logger
-from app.models.user_model import UserModel
 from app.repository.users_repository import UserRepository
 from app.schemas.user_schema import SignUpSchema, UserSchema, UserUpdateSchema
 from app.utils.jwt_util import create_access_token
@@ -30,9 +28,10 @@ class UserService:
         return user_list or []
 
     async def create_user(self, session: AsyncSession, user_data: SignUpSchema):
-        if "password" in user_data:
-            user_data["password"] = pwd_context.hash(user_data["password"])
-        user = await self.repo.create(session, user_data.model_dump())
+        data = user_data.model_dump()
+        if "password" in data:
+            data["password"] = pwd_context.hash(data["password"])
+        user = await self.repo.create(session, data)
         logger.info(f"User created: id={user.id}, name={user.name}")
         return user
 
@@ -70,8 +69,8 @@ class UserService:
     async def login_user(self, user_data: dict, session: AsyncSession):
         email = user_data.get("email")
         password = user_data.get("password")
-        res = await session.execute(select(UserModel).where(UserModel.email == email))
-        user = res.scalar_one_or_none()
+
+        user = await self.repo.get_by_email(session, email)
         if not user:
             raise HTTPException(status_code=401, detail="Invalid credentials")
 
