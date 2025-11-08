@@ -169,7 +169,7 @@ pip install -r test-requirements.txt
 Then paste the command to run your service tests
 
 ```bash
-pytest app/tests/test_user_service.py -v    
+PYTHONPATH=. pytest -v   
 ```
 
 

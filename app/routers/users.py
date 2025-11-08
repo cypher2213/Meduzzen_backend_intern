@@ -2,11 +2,10 @@ from typing import List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
-from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import get_redis, get_session
-from app.decorators.auth0_decorator import require_auth
+from app.db.session import get_session
+from app.models.user_model import UserModel
 from app.schemas.user_schema import (
     SignInSchema,
     SignUpSchema,
@@ -14,6 +13,7 @@ from app.schemas.user_schema import (
     UserUpdateSchema,
 )
 from app.services.users_service import user_service
+from app.utils.auth0_util import auth0_connect
 
 router = APIRouter()
 
@@ -23,9 +23,8 @@ async def get_users(
     limit: int = 10,
     offset: int = 0,
     session: AsyncSession = Depends(get_session),
-    redis: Redis = Depends(get_redis),
 ):
-    users = await user_service.get_all_users(session, redis, limit, offset)
+    users = await user_service.get_all_users(session, limit, offset)
     return users
 
 
@@ -33,33 +32,29 @@ async def get_users(
 async def user_create(
     user: SignUpSchema,
     session: AsyncSession = Depends(get_session),
-    redis: Redis = Depends(get_redis),
 ):
-    return await user_service.create_user(session, user.model_dump(), redis)
+    return await user_service.create_user(session, user)
 
 
 @router.get("/me")
-@require_auth
-async def get_current_user(request, current_user):
-    return {"message": f"Hello,{current_user.name}.You are authenticated successfully!"}
+async def get_current_user(user: UserModel = Depends(auth0_connect)):
+    return {"message": f"Hello,{user.email}.You are authenticated successfully!"}
 
 
 @router.delete("/{user_id}")
 async def user_delete(
     user_id: UUID,
     session: AsyncSession = Depends(get_session),
-    redis: Redis = Depends(get_redis),
 ):
-    return await user_service.delete_user(session, user_id, redis)
+    return await user_service.delete_user(session, user_id)
 
 
 @router.get("/{user_id}")
 async def user_by_id(
     user_id: UUID,
     session: AsyncSession = Depends(get_session),
-    redis: Redis = Depends(get_redis),
 ):
-    return await user_service.get_user_by_id(session, user_id, redis)
+    return await user_service.get_user_by_id(session, user_id)
 
 
 @router.patch("/{user_id}")
@@ -67,9 +62,8 @@ async def user_update(
     user_id: UUID,
     user: UserUpdateSchema,
     session: AsyncSession = Depends(get_session),
-    redis: Redis = Depends(get_redis),
 ):
-    return await user_service.update_user(user_id, user.model_dump(), session, redis)
+    return await user_service.update_user(user_id, user, session)
 
 
 @router.post("/login")
