@@ -35,7 +35,13 @@ class UserService:
         logger.info(f"User created: id={user.id}, name={user.name}")
         return user
 
-    async def delete_user(self, session: AsyncSession, user_id: UUID):
+    async def delete_user(
+        self, session: AsyncSession, user_id: UUID, current_user: dict
+    ):
+        if str(current_user.id) != str(user_id):
+            raise HTTPException(
+                status_code=403, detail="You can delete only your own account"
+            )
         user = await self.repo.get_by_id(session, user_id)
         if not user:
             logger.warning(f"Attempted delete — user not found: id={user_id}")
@@ -57,6 +63,12 @@ class UserService:
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         filtered_data = updated_user.model_dump(exclude_none=True)
+
+        if "email" in filtered_data:
+            raise HTTPException(status_code=400, detail="Email cannot be changed")
+        if "password" in filtered_data:
+            filtered_data["password"] = pwd_context.hash(filtered_data["password"])
+
         updated_user_obj = await self.repo.update(session, user, filtered_data)
         logger.info(f"User updated: id={user.id}")
         return {

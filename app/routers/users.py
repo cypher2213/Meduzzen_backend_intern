@@ -14,6 +14,7 @@ from app.schemas.user_schema import (
 )
 from app.services.users_service import user_service
 from app.utils.auth0_util import auth0_connect
+from app.utils.jwt_util import get_me
 
 router = APIRouter()
 
@@ -45,8 +46,9 @@ async def get_current_user(user: UserModel = Depends(auth0_connect)):
 async def user_delete(
     user_id: UUID,
     session: AsyncSession = Depends(get_session),
+    current_user: UserModel = Depends(get_me),
 ):
-    return await user_service.delete_user(session, user_id)
+    return await user_service.delete_user(session, user_id, current_user)
 
 
 @router.get("/{user_id}")
