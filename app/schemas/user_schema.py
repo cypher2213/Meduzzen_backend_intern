@@ -6,8 +6,8 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 class UserSchema(BaseModel):
     id: UUID
-    name: str
-    age: int = Field(gt=0, le=120)
+    name: Optional[str]
+    age: Optional[int] = Field(gt=0, le=120)
     email: EmailStr
 
     model_config = {"from_attributes": True}
