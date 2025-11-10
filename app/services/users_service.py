@@ -6,11 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.logger import logger
 from app.repository.users_repository import UserRepository
 from app.schemas.user_schema import SignUpSchema, UserSchema, UserUpdateSchema
-from app.utils.jwt_util import (
-    create_access_token,
-    password_hash,
-    verify_password,
-)
+from app.utils.jwt_util import create_access_token, password_hash, verify_password
 
 
 class UserService:
