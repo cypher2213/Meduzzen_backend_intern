@@ -55,15 +55,17 @@ async def test_login_user_success(user_service, mock_repo, mock_session, fake_us
     mock_repo.get_by_email.return_value = fake_user
     user_data = SignInSchema(email=fake_user.email, password="123456")
 
-    with patch(
-        "app.services.users_service.pwd_context.verify", return_value=True
-    ), patch(
+    with patch("app.services.users_service.verify_password", return_value=True), patch(
         "app.services.users_service.create_access_token", return_value="mock_token"
     ):
         result = await user_service.login_user(user_data.model_dump(), mock_session)
 
     mock_repo.get_by_email.assert_awaited_once_with(mock_session, fake_user.email)
-    assert result == {"access_token": "mock_token", "token_type": "bearer"}
+    assert result == {
+        "message": "Logged in successfully!",
+        "access_token": "mock_token",
+        "token_type": "bearer",
+    }
 
 
 @pytest.mark.asyncio
@@ -86,7 +88,7 @@ async def test_login_user_invalid_password(
     mock_repo.get_by_email.return_value = fake_user
     user_data = SignInSchema(email=fake_user.email, password="wrongpass")
 
-    with patch("app.services.users_service.pwd_context.verify", return_value=False):
+    with patch("app.utils.jwt_util.pwd_context.verify", return_value=False):
         with pytest.raises(HTTPException) as exc:
             await user_service.login_user(user_data.model_dump(), mock_session)
 
