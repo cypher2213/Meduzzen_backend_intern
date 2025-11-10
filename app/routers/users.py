@@ -13,7 +13,7 @@ from app.schemas.user_schema import (
     UserUpdateSchema,
 )
 from app.services.users_service import user_service
-from app.utils.auth0_util import auth0_connect
+from app.utils.user_util import user_connect
 
 router = APIRouter()
 
@@ -37,7 +37,7 @@ async def user_create(
 
 
 @router.get("/me")
-async def get_current_user(user: UserModel = Depends(auth0_connect)):
+async def get_current_user(user: UserModel = Depends(user_connect)):
     return {"message": f"Hello,{user.email}.You are authenticated successfully!"}
 
 
