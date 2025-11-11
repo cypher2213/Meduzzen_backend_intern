@@ -57,6 +57,8 @@ async def test_login_user_success(user_service, mock_repo, mock_session, fake_us
 
     with patch("app.services.users_service.verify_password", return_value=True), patch(
         "app.services.users_service.create_access_token", return_value="mock_token"
+    ), patch(
+        "app.services.users_service.create_refresh_token", return_value="mock_refresh"
     ):
         result = await user_service.login_user(user_data.model_dump(), mock_session)
 
@@ -64,6 +66,7 @@ async def test_login_user_success(user_service, mock_repo, mock_session, fake_us
     assert result == {
         "message": "Logged in successfully!",
         "access_token": "mock_token",
+        "refresh_token": "mock_refresh",
         "token_type": "bearer",
     }
 

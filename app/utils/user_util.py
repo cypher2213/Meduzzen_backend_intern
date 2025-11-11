@@ -1,16 +1,16 @@
 import jwt as pyjwt
 import requests
 from fastapi import Depends, Header, HTTPException
-from jose import jwt
+from jose import jwt as jose_jwt
 from jwt.algorithms import RSAAlgorithm
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth0_config import auth0_settings
-from app.core.jwt_config import jwt_settings
 from app.db.session import get_session
 from app.models.user_model import UserModel
 from app.repository.users_repository import UserRepository
+from app.utils.jwt_util import decode_token
 
 
 async def user_connect(
@@ -24,13 +24,13 @@ async def user_connect(
     token = authorization.split(" ")[1]
 
     try:
-        not_verified_payload = jwt.get_unverified_claims(token)
+        not_verified_payload = jose_jwt.get_unverified_claims(token)
         iss = not_verified_payload.get("iss")
 
         # =============AUTH0===============================
 
         if iss == f"https://{auth0_settings.AUTH0_DOMAIN}/":
-            headers = jwt.get_unverified_header(token)
+            headers = jose_jwt.get_unverified_header(token)
             kid = headers.get("kid")
             jwks = requests.get(
                 f"https://{auth0_settings.AUTH0_DOMAIN}/.well-known/jwks.json"
@@ -41,7 +41,7 @@ async def user_connect(
                     status_code=401, detail="Auth0 public key not found"
                 )
             public_key = RSAAlgorithm.from_jwk(key)
-            payload = jwt.decode(
+            payload = jose_jwt.decode(
                 token,
                 public_key,
                 audience=auth0_settings.API_AUDIENCE,
@@ -60,10 +60,8 @@ async def user_connect(
 
         else:
             try:
-                decoded_token = pyjwt.decode(
-                    token, jwt_settings.SECRET_KEY, algorithms=jwt_settings.ALGORITHM
-                )
-                user_email = decoded_token.get("sub")
+                payload = decode_token(token, expected_type="access")
+                user_email = payload.get("sub")
                 if not user_email:
                     raise HTTPException(status_code=401, detail="Invalid token")
                 result = await session.execute(
@@ -75,7 +73,6 @@ async def user_connect(
                 return user
             except pyjwt.ExpiredSignatureError:
                 raise HTTPException(status_code=401, detail="Token expired")
-            except pyjwt.InvalidTokenError:
-                raise HTTPException(status_code=401, detail="Invalid token")
-    except Exception:
+    except Exception as e:
+        print("Decode error:", repr(e))
         raise HTTPException(status_code=401, detail="Invalid token")
