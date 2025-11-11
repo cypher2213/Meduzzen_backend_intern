@@ -11,6 +11,7 @@ SECRET_KEY = jwt_settings.SECRET_KEY
 ALGORITHM = jwt_settings.ALGORITHM
 ACCESS_TOKEN_EXPIRE_MIN = jwt_settings.ACCESS_TOKEN_EXPIRE_MIN
 REFRESH_TOKEN_EXPIRE_DAY = jwt_settings.REFRESH_TOKEN_EXPIRE_DAY
+OTHER_SECRET_KEY = jwt_settings.OTHER_SECRET_KEY
 
 security = HTTPBearer()
 pwd_context = PasswordHash.recommended()
@@ -28,7 +29,7 @@ def create_refresh_token(data: dict):
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAY)
     to_encode.update({"exp": expire, "type": "refresh"})
-    token = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    token = jwt.encode(to_encode, OTHER_SECRET_KEY, algorithm=ALGORITHM)
     return token
 
 
@@ -42,7 +43,8 @@ def password_hash(password: str):
 
 def decode_token(token: str, expected_type: str):
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        key_to_use = SECRET_KEY if expected_type == "access" else OTHER_SECRET_KEY
+        payload = jwt.decode(token, key_to_use, algorithms=[ALGORITHM])
         token_type = payload.get("type")
 
         if token_type != expected_type:

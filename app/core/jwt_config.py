@@ -6,6 +6,7 @@ class JWT_Settings(BaseConfig):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MIN: int = 15
     REFRESH_TOKEN_EXPIRE_DAY: int = 7
+    OTHER_SECRET_KEY: str
 
 
 jwt_settings = JWT_Settings()
