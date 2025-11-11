@@ -6,8 +6,8 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 class UserSchema(BaseModel):
     id: UUID
-    name: str
-    age: int = Field(gt=0, le=120)
+    name: Optional[str]
+    age: Optional[int] = Field(gt=0, le=120)
     email: EmailStr
 
     model_config = {"from_attributes": True}
@@ -38,3 +38,15 @@ class UsersListSchema(BaseModel):
 
 class UserDetailsSchema(BaseModel):
     user_info: UserSchema
+
+
+class LoginResponseSchema(BaseModel):
+    message: str
+    access_token: str
+    refresh_token: str
+    token_type: str
+
+
+class RefreshResponseSchema(BaseModel):
+    access_token: str
+    token_type: str

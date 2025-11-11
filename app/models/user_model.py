@@ -8,7 +8,7 @@ from app.models.uuid_mixin import UUIDMixin
 
 class UserModel(Base, TimestampMixin, UUIDMixin):
     __tablename__ = "users"
-    name: Mapped[str] = mapped_column(String, nullable=False)
-    password: Mapped[str] = mapped_column(String, nullable=False)
+    name: Mapped[str] = mapped_column(String, nullable=True)
+    password: Mapped[str] = mapped_column(String, nullable=True)
     age: Mapped[int] = mapped_column(Integer, nullable=True)
     email: Mapped[str] = mapped_column(String, unique=True, nullable=False, index=True)
