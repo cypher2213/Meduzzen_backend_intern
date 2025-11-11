@@ -1,7 +1,9 @@
 from typing import List
 from uuid import UUID
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.db.session import get_session
 from app.models.user_model import UserModel
 from app.schemas.user_schema import (
@@ -67,3 +69,8 @@ async def user_update(
 @router.post("/login")
 async def user_login(user: SignInSchema, session: AsyncSession = Depends(get_session)):
     return await user_service.login_user(user.model_dump(), session)
+
+
+@router.post("/refresh")
+async def user_refresh_token(refresh_token: str):
+    return await user_service.refresh_access_token(refresh_token)
