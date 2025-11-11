@@ -38,3 +38,15 @@ class UsersListSchema(BaseModel):
 
 class UserDetailsSchema(BaseModel):
     user_info: UserSchema
+
+
+class LoginResponseSchema(BaseModel):
+    message: str
+    access_token: str
+    refresh_token: str
+    token_type: str
+
+
+class RefreshResponseSchema(BaseModel):
+    access_token: str
+    token_type: str
