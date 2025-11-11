@@ -3,7 +3,6 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.db.session import get_session
 from app.models.user_model import UserModel
 from app.schemas.user_schema import (
