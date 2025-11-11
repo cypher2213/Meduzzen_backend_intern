@@ -6,7 +6,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.logger import logger
 from app.repository.users_repository import UserRepository
 from app.schemas.user_schema import SignUpSchema, UserSchema, UserUpdateSchema
-from app.utils.jwt_util import create_access_token, password_hash, verify_password
+from app.utils.jwt_util import (
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+    password_hash,
+    verify_password,
+)
 
 
 class UserService:
@@ -72,12 +78,30 @@ class UserService:
         if not verify_password(password, user.password):
             raise HTTPException(status_code=401, detail="Invalid credentials")
         access_token = create_access_token({"sub": user.email})
-        # refresh_token = create_refresh_token({"sub": user.email})
+        refresh_token = create_refresh_token({"sub": user.email})
         return {
             "message": "Logged in successfully!",
             "access_token": access_token,
+            "refresh_token": refresh_token,
             "token_type": "bearer",
         }
+
+    async def refresh_access_token(self, refresh_token: str):
+        try:
+            payload = decode_token(refresh_token, expected_type="refresh")
+            user_email = payload.get("sub")
+            if not user_email:
+                raise HTTPException(
+                    status_code=401, detail="Invalid refresh token payload"
+                )
+
+            new_access = create_access_token({"sub": user_email})
+            return {"access_token": new_access, "token_type": "bearer"}
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=401, detail=str(e))
 
 
 user_service = UserService(UserRepository())
