@@ -1,15 +1,18 @@
 from uuid import UUID
 
 from fastapi import HTTPException
-from pwdlib import PasswordHash
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logger import logger
 from app.repository.users_repository import UserRepository
 from app.schemas.user_schema import SignUpSchema, UserSchema, UserUpdateSchema
-from app.utils.jwt_util import create_access_token
-
-pwd_context = PasswordHash.recommended()
+from app.utils.jwt_util import (
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+    password_hash,
+    verify_password,
+)
 
 
 class UserService:
@@ -30,7 +33,7 @@ class UserService:
     async def create_user(self, session: AsyncSession, user_data: SignUpSchema):
         data = user_data.model_dump()
         if "password" in data:
-            data["password"] = pwd_context.hash(data["password"])
+            data["password"] = password_hash(data["password"])
         user = await self.repo.create(session, data)
         logger.info(f"User created: id={user.id}, name={user.name}")
         return user
@@ -81,16 +84,36 @@ class UserService:
     async def login_user(self, user_data: dict, session: AsyncSession):
         email = user_data.get("email")
         password = user_data.get("password")
-
         user = await self.repo.get_by_email(session, email)
         if not user:
             raise HTTPException(status_code=401, detail="Invalid credentials")
-
-        if not pwd_context.verify(password, user.password):
+        if not verify_password(password, user.password):
             raise HTTPException(status_code=401, detail="Invalid credentials")
+        access_token = create_access_token({"sub": user.email})
+        refresh_token = create_refresh_token({"sub": user.email})
+        return {
+            "message": "Logged in successfully!",
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer",
+        }
 
-        token = create_access_token({"sub": user.email})
-        return {"access_token": token, "token_type": "bearer"}
+    async def refresh_access_token(self, refresh_token: str):
+        try:
+            payload = decode_token(refresh_token, expected_type="refresh")
+            user_email = payload.get("sub")
+            if not user_email:
+                raise HTTPException(
+                    status_code=401, detail="Invalid refresh token payload"
+                )
+
+            new_access = create_access_token({"sub": user_email})
+            return {"access_token": new_access, "token_type": "bearer"}
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=401, detail=str(e))
 
 
 user_service = UserService(UserRepository())
