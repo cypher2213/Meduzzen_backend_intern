@@ -3,9 +3,12 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.db.session import get_session
 from app.models.user_model import UserModel
 from app.schemas.user_schema import (
+    LoginResponseSchema,
+    RefreshResponseSchema,
     SignInSchema,
     SignUpSchema,
     UserSchema,
@@ -35,9 +38,14 @@ async def user_create(
     return await user_service.create_user(session, user)
 
 
-@router.get("/me")
+@router.get("/me", response_model=UserSchema)
 async def get_current_user(user: UserModel = Depends(user_connect)):
-    return {"message": f"Hello,{user.email}.You are authenticated successfully!"}
+    return {
+        "id": user.id,
+        "name": user.email.split("@")[0].capitalize(),
+        "email": user.email,
+        "age": user.age,
+    }
 
 
 @router.delete("/{user_id}")
@@ -65,11 +73,11 @@ async def user_update(
     return await user_service.update_user(user_id, user, session)
 
 
-@router.post("/login")
+@router.post("/login", response_model=LoginResponseSchema)
 async def user_login(user: SignInSchema, session: AsyncSession = Depends(get_session)):
     return await user_service.login_user(user.model_dump(), session)
 
 
-@router.post("/refresh")
+@router.post("/refresh", response_model=RefreshResponseSchema)
 async def user_refresh_token(refresh_token: str):
     return await user_service.refresh_access_token(refresh_token)
