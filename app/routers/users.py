@@ -11,6 +11,7 @@ from app.schemas.user_schema import (
     RefreshResponseSchema,
     SignInSchema,
     SignUpSchema,
+    UpdateUserResponseSchema,
     UserSchema,
     UserUpdateSchema,
 )
@@ -65,14 +66,14 @@ async def user_by_id(
     return await user_service.get_user_by_id(session, user_id)
 
 
-@router.patch("/{user_id}")
+@router.patch("/{user_id}", response_model=UpdateUserResponseSchema)
 async def user_update(
     user_id: UUID,
     user: UserUpdateSchema,
     session: AsyncSession = Depends(get_session),
     current_user: UserModel = Depends(user_connect),
 ):
-    return await user_service.update_user(user_id, user, session,current_user)
+    return await user_service.update_user(user_id, user, session, current_user)
 
 
 @router.post("/login", response_model=LoginResponseSchema)
