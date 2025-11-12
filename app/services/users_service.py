@@ -60,18 +60,24 @@ class UserService:
         return {"message": "User Found", "user": user}
 
     async def update_user(
-        self, user_id: UUID, updated_user: UserUpdateSchema, session: AsyncSession
+        self,
+        user_id: UUID,
+        updated_user: UserUpdateSchema,
+        session: AsyncSession,
+        current_user: dict,
     ):
+        if str(current_user.id) != str(user_id):
+            raise HTTPException(
+                status_code=403, detail="You can edit only your own account data"
+            )
         user = await self.repo.get_by_id(session, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         filtered_data = updated_user.model_dump(exclude_none=True)
-
         if "email" in filtered_data:
             raise HTTPException(status_code=400, detail="Email cannot be changed")
         if "password" in filtered_data:
-            filtered_data["password"] = pwd_context.hash(filtered_data["password"])
-
+            filtered_data["password"] = password_hash(filtered_data["password"])
         updated_user_obj = await self.repo.update(session, user, filtered_data)
         logger.info(f"User updated: id={user.id}")
         return {
