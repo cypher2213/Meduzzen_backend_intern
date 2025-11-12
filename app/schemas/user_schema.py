@@ -51,3 +51,10 @@ class LoginResponseSchema(BaseModel):
 class RefreshResponseSchema(BaseModel):
     access_token: str
     token_type: str
+
+
+class UpdateUserResponseSchema(BaseModel):
+    message: str
+    id: UUID
+    name: str
+    email: str
