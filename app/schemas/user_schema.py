@@ -29,6 +29,7 @@ class UserUpdateSchema(BaseModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
     age: Optional[int] = None
+    password: Optional[str] = None
     model_config = ConfigDict(extra="forbid")
 
 
@@ -50,3 +51,10 @@ class LoginResponseSchema(BaseModel):
 class RefreshResponseSchema(BaseModel):
     access_token: str
     token_type: str
+
+
+class UpdateUserResponseSchema(BaseModel):
+    message: str
+    id: UUID
+    name: str
+    email: str

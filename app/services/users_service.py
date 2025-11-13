@@ -38,13 +38,15 @@ class UserService:
         logger.info(f"User created: id={user.id}, name={user.name}")
         return user
 
-    async def delete_user(self, session: AsyncSession, user_id: UUID):
-        user = await self.repo.get_by_id(session, user_id)
+    async def delete_user(
+        self, session: AsyncSession, current_user: dict
+    ):
+        user = await self.repo.get_by_id(session, current_user.id)
         if not user:
-            logger.warning(f"Attempted delete — user not found: id={user_id}")
+            logger.warning(f"Attempted delete — user not found: id={current_user.id}")
             raise HTTPException(status_code=404, detail="User not found")
         await self.repo.delete(session, user)
-        logger.info(f"User deleted: id={user_id}, name={user.name}")
+        logger.info(f"User deleted: id={current_user.id}, name={user.name}")
         return {"message": f"User with name {user.name} successfully deleted!"}
 
     async def get_user_by_id(self, session: AsyncSession, user_id: UUID):
@@ -54,12 +56,19 @@ class UserService:
         return {"message": "User Found", "user": user}
 
     async def update_user(
-        self, user_id: UUID, updated_user: UserUpdateSchema, session: AsyncSession
+        self,
+        updated_user: UserUpdateSchema,
+        session: AsyncSession,
+        current_user: dict,
     ):
-        user = await self.repo.get_by_id(session, user_id)
+        user = await self.repo.get_by_id(session, current_user.id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         filtered_data = updated_user.model_dump(exclude_none=True)
+        if "email" in filtered_data:
+            raise HTTPException(status_code=400, detail="Email cannot be changed")
+        if "password" in filtered_data:
+            filtered_data["password"] = password_hash(filtered_data["password"])
         updated_user_obj = await self.repo.update(session, user, filtered_data)
         logger.info(f"User updated: id={user.id}")
         return {
