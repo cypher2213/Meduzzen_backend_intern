@@ -49,13 +49,12 @@ async def get_current_user(user: UserModel = Depends(user_connect)):
     }
 
 
-@router.delete("/{user_id}")
+@router.delete("/me")
 async def user_delete(
-    user_id: UUID,
     session: AsyncSession = Depends(get_session),
     current_user: UserModel = Depends(user_connect),
 ):
-    return await user_service.delete_user(session, user_id, current_user)
+    return await user_service.delete_user(session, current_user)
 
 
 @router.get("/{user_id}")
@@ -66,14 +65,13 @@ async def user_by_id(
     return await user_service.get_user_by_id(session, user_id)
 
 
-@router.patch("/{user_id}", response_model=UpdateUserResponseSchema)
+@router.patch("/me", response_model=UpdateUserResponseSchema)
 async def user_update(
-    user_id: UUID,
     user: UserUpdateSchema,
     session: AsyncSession = Depends(get_session),
     current_user: UserModel = Depends(user_connect),
 ):
-    return await user_service.update_user(user_id, user, session, current_user)
+    return await user_service.update_user(user, session, current_user)
 
 
 @router.post("/login", response_model=LoginResponseSchema)
