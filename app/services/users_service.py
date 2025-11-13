@@ -39,18 +39,14 @@ class UserService:
         return user
 
     async def delete_user(
-        self, session: AsyncSession, user_id: UUID, current_user: dict
+        self, session: AsyncSession, current_user: dict
     ):
-        if str(current_user.id) != str(user_id):
-            raise HTTPException(
-                status_code=403, detail="You can delete only your own account"
-            )
-        user = await self.repo.get_by_id(session, user_id)
+        user = await self.repo.get_by_id(session, current_user.id)
         if not user:
-            logger.warning(f"Attempted delete — user not found: id={user_id}")
+            logger.warning(f"Attempted delete — user not found: id={current_user.id}")
             raise HTTPException(status_code=404, detail="User not found")
         await self.repo.delete(session, user)
-        logger.info(f"User deleted: id={user_id}, name={user.name}")
+        logger.info(f"User deleted: id={current_user.id}, name={user.name}")
         return {"message": f"User with name {user.name} successfully deleted!"}
 
     async def get_user_by_id(self, session: AsyncSession, user_id: UUID):
@@ -61,16 +57,11 @@ class UserService:
 
     async def update_user(
         self,
-        user_id: UUID,
         updated_user: UserUpdateSchema,
         session: AsyncSession,
         current_user: dict,
     ):
-        if str(current_user.id) != str(user_id):
-            raise HTTPException(
-                status_code=403, detail="You can edit only your own account data"
-            )
-        user = await self.repo.get_by_id(session, user_id)
+        user = await self.repo.get_by_id(session, current_user.id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         filtered_data = updated_user.model_dump(exclude_none=True)
