@@ -1,7 +1,16 @@
-from typing import Optional
+from typing import List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel
+
+
+class CompanySchema(BaseModel):
+    id: UUID
+    name: str
+    description: Optional[str] = None
+    is_public: Optional[bool] = True
+
+    model_config = {"from_attributes": True}
 
 
 class CompanyCreate(BaseModel):
@@ -22,4 +31,6 @@ class CompanyUpdate(BaseModel):
     description: Optional[str] = None
     is_public: Optional[bool] = True
 
-    model_config = {"from_attributes": True}
+
+class CompanyListSchema(BaseModel):
+    List[CompanySchema]
