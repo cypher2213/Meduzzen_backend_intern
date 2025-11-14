@@ -16,4 +16,10 @@ class CompanyCreateResponse(BaseModel):
     description: Optional[str]
     is_public: bool
 
+
+class CompanyUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    is_public: Optional[bool] = True
+
     model_config = {"from_attributes": True}
