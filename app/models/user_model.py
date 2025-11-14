@@ -1,5 +1,12 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, List
+
 from sqlalchemy import Integer, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+if TYPE_CHECKING:
+    from app.models.company_user_role_model import CompanyUserRoleModel
 
 from app.models.base import Base
 from app.models.timestamp_mixin import TimestampMixin
@@ -12,3 +19,6 @@ class UserModel(Base, TimestampMixin, UUIDMixin):
     password: Mapped[str] = mapped_column(String, nullable=True)
     age: Mapped[int] = mapped_column(Integer, nullable=True)
     email: Mapped[str] = mapped_column(String, unique=True, nullable=False, index=True)
+    roles: Mapped[List["CompanyUserRoleModel"]] = relationship(
+        "CompanyUserRoleModel", back_populates="user", cascade="all, delete-orphan"
+    )
