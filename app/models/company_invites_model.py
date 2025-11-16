@@ -41,10 +41,22 @@ class CompanyInvitesModel(Base, UUIDMixin, TimestampMixin):
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
     )
     type: Mapped[InviteType] = mapped_column(
-        Enum(InviteType, name="invitation_type"), nullable=False
+        Enum(
+            InviteType,
+            name="invitation_type",
+            native_enum=False,
+            values_callable=lambda e: [i.value for i in e],
+        ),
+        nullable=False,
     )
     status: Mapped[InviteStatus] = mapped_column(
-        Enum(InviteStatus, name="invitation_status"), nullable=False
+        Enum(
+            InviteStatus,
+            name="invitation_status",
+            native_enum=False,
+            values_callable=lambda e: [i.value for i in e],
+        ),
+        nullable=False,
     )
     company: Mapped["CompanyModel"] = relationship("CompanyModel")
     invited_by: Mapped["UserModel"] = relationship(
