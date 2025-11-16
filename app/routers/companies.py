@@ -6,7 +6,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_session
 from app.models.user_model import UserModel
-from app.schemas.company_schema import CompanyCreate, CompanySchema, CompanyUpdate
+from app.schemas.company_schema import (
+    CompanyCreate,
+    CompanySchema,
+    CompanyUpdate,
+    InviteSentSchema,
+)
 from app.services.companies_service import companies_service
 from app.utils.user_util import user_connect
 
@@ -54,3 +59,12 @@ async def delete_company(
     current_user: UserModel = Depends(user_connect),
 ):
     return await companies_service.company_delete(company_id, session, current_user)
+
+
+@router.post("/invite")
+async def send_invite(
+    invite: InviteSentSchema,
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await companies_service.invite_send(invite, current_user, session)
