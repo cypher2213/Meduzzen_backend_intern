@@ -34,3 +34,8 @@ class CompanyUpdate(BaseModel):
 
 class CompanyListSchema(BaseModel):
     List[CompanySchema]
+
+
+class InviteSentSchema(BaseModel):
+    company_id: UUID
+    invited_user_id: UUID
