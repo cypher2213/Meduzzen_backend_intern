@@ -3,6 +3,7 @@ from uuid import UUID
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.company_user_role_model import RoleEnum
 from app.models.user_model import UserModel
 from app.repository.companies_repository import CompaniesRepository
 from app.schemas.company_schema import CompanyCreate, CompanySchema, CompanyUpdate
@@ -42,7 +43,7 @@ class CompaniesService:
             is_public=company_data.is_public,
         )
         await self.repo.add_user_role(
-            db=db, user_id=user.id, company_id=new_company.id, role="owner"
+            db=db, user_id=user.id, company_id=new_company.id, role=RoleEnum.OWNER
         )
         await db.refresh(new_company)
         return {
@@ -80,7 +81,6 @@ class CompaniesService:
                 status_code=403,
                 detail="You are not the owner of this company or it does not exist.",
             )
-        return {"message": f"Company {company.name} deleted successfully."}
 
 
 companies_service = CompaniesService(CompaniesRepository())

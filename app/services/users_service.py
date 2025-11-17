@@ -38,9 +38,7 @@ class UserService:
         logger.info(f"User created: id={user.id}, name={user.name}")
         return user
 
-    async def delete_user(
-        self, session: AsyncSession, current_user: dict
-    ):
+    async def delete_user(self, session: AsyncSession, current_user: dict):
         user = await self.repo.get_by_id(session, current_user.id)
         if not user:
             logger.warning(f"Attempted delete — user not found: id={current_user.id}")
