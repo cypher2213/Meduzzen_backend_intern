@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.company_model import CompanyModel
-from app.models.company_user_role_model import CompanyUserRoleModel
+from app.models.company_user_role_model import CompanyUserRoleModel, RoleEnum
 from app.models.user_model import UserModel
 
 
@@ -26,7 +26,7 @@ class CompaniesRepository:
             .where(
                 CompanyModel.id == company_id,
                 CompanyUserRoleModel.user_id == user_id,
-                CompanyUserRoleModel.role == "owner",
+                CompanyUserRoleModel.role == RoleEnum.OWNER,
             )
         )
         return result.scalar_one_or_none()
@@ -50,10 +50,10 @@ class CompaniesRepository:
         return new_company
 
     async def add_user_role(
-        self, db: AsyncSession, user_id: UUID, company_id: UUID, role: str
+        self, db: AsyncSession, user_id: UUID, company_id: UUID, role: RoleEnum
     ):
         owner_role = CompanyUserRoleModel(
-            user_id=user_id, company_id=company_id, role=role
+            user_id=user_id, company_id=company_id, role=role.value
         )
         db.add(owner_role)
         await db.commit()
@@ -65,7 +65,7 @@ class CompaniesRepository:
             .where(
                 CompanyModel.id == company_id,
                 CompanyUserRoleModel.user_id == user.id,
-                CompanyUserRoleModel.role == "owner",
+                CompanyUserRoleModel.role == RoleEnum.OWNER,
             )
         )
         company = res.scalar_one_or_none()
