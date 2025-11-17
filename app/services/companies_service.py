@@ -1,11 +1,23 @@
 from uuid import UUID
 
 from fastapi import HTTPException
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.company_invites_model import (
+    CompanyInvitesModel,
+    InviteStatus,
+    InviteType,
+)
+from app.models.company_model import CompanyModel
 from app.models.user_model import UserModel
 from app.repository.companies_repository import CompaniesRepository
-from app.schemas.company_schema import CompanyCreate, CompanySchema, CompanyUpdate
+from app.schemas.company_schema import (
+    CompanyCreate,
+    CompanySchema,
+    CompanyUpdate,
+    InviteSentSchema,
+)
 
 
 class CompaniesService:
@@ -81,6 +93,39 @@ class CompaniesService:
                 detail="You are not the owner of this company or it does not exist.",
             )
         return {"message": f"Company {company.name} deleted successfully."}
+
+    async def invite_send(
+        self, invite_data: InviteSentSchema, user: UserModel, session: AsyncSession
+    ):
+        seek_user = await session.execute(
+            select(UserModel).where(UserModel.id == invite_data.invited_user_id)
+        )
+        user = seek_user.scalar_one_or_none()
+        if not user:
+            raise HTTPException(
+                status_code=404,
+                detail=f"User with id {invite_data.invited_user_id} is not found.",
+            )
+        seek_company = await session.execute(
+            select(CompanyModel).where(CompanyModel.id == invite_data.company_id)
+        )
+        company = seek_company.scalar_one_or_none()
+        if not company:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Company with company_id {invite_data.company_id} is not found.",
+            )
+        invite_sending = CompanyInvitesModel(
+            company_id=invite_data.company_id,
+            invited_user_id=invite_data.invited_user_id,
+            type=InviteType.INVITE,
+            status=InviteStatus.PENDING,
+        )
+        session.add(invite_sending)
+        await session.commit()
+        await session.refresh(invite_sending)
+
+        return {"message": f"Successfully sent invitation to {user.name} "}
 
 
 companies_service = CompaniesService(CompaniesRepository())
