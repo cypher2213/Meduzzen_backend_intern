@@ -94,14 +94,16 @@ class CompaniesService:
             )
         return {"message": f"Company {company.name} deleted successfully."}
 
+    # ========================INVITES====================
+
     async def invite_send(
         self, invite_data: InviteSentSchema, user: UserModel, session: AsyncSession
     ):
         seek_user = await session.execute(
             select(UserModel).where(UserModel.id == invite_data.invited_user_id)
         )
-        user = seek_user.scalar_one_or_none()
-        if not user:
+        invited_user = seek_user.scalar_one_or_none()
+        if not invited_user:
             raise HTTPException(
                 status_code=404,
                 detail=f"User with id {invite_data.invited_user_id} is not found.",
@@ -118,6 +120,7 @@ class CompaniesService:
         invite_sending = CompanyInvitesModel(
             company_id=invite_data.company_id,
             invited_user_id=invite_data.invited_user_id,
+            invited_by_id=user.id,
             type=InviteType.INVITE,
             status=InviteStatus.PENDING,
         )
@@ -125,7 +128,26 @@ class CompaniesService:
         await session.commit()
         await session.refresh(invite_sending)
 
-        return {"message": f"Successfully sent invitation to {user.name} "}
+        return {"message": f"Successfully sent invitation to {invited_user.name} "}
+
+    async def invite_cancel(
+        self, invite_id: UUID, user: UserModel, session: AsyncSession
+    ):
+        invite_seek = await session.execute(
+            select(CompanyInvitesModel).where(CompanyInvitesModel.id == invite_id)
+        )
+        invitation = invite_seek.scalar_one_or_none()
+        if not invitation:
+            raise HTTPException(
+                status_code=404, detail=f"Invitation with id {invite_id} is not found."
+            )
+        if invitation.invited_by_id != user.id:
+            raise HTTPException(
+                status_code=403, detail="You are not allowed to delete this invitation."
+            )
+        await session.delete(invitation)
+        await session.commit()
+        return {"message": "Invitation deleted successfully!"}
 
 
 companies_service = CompaniesService(CompaniesRepository())

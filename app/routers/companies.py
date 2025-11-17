@@ -61,6 +61,9 @@ async def delete_company(
     return await companies_service.company_delete(company_id, session, current_user)
 
 
+# ===============================INVITES=======================================
+
+
 @router.post("/invite")
 async def send_invite(
     invite: InviteSentSchema,
@@ -68,3 +71,12 @@ async def send_invite(
     session: AsyncSession = Depends(get_session),
 ):
     return await companies_service.invite_send(invite, current_user, session)
+
+
+@router.delete("/invite/{invite_id}")
+async def cancel_invite(
+    invite_id: UUID,
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await companies_service.invite_cancel(invite_id, current_user, session)
