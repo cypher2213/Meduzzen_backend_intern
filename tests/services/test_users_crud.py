@@ -23,13 +23,13 @@ async def test_create_user(user_service, mock_repo, mock_session, fake_user):
 
 @pytest.mark.asyncio
 async def test_delete_user_success(user_service, mock_repo, mock_session, fake_user):
-    mock_repo.get_by_id.return_value = fake_user
+    mock_repo.get.return_value = fake_user
     mock_repo.delete.return_value = None
     current_user = SimpleNamespace(id=fake_user.id)
-    result = await user_service.delete_user(mock_session, current_user)
 
-    mock_repo.delete.assert_called_once_with(mock_session, fake_user)
-    assert "successfully deleted" in result["message"]
+    await user_service.delete_user(mock_session, current_user)
+
+    mock_repo.delete.assert_awaited_once_with(mock_session, fake_user)
 
 
 @pytest.mark.asyncio
