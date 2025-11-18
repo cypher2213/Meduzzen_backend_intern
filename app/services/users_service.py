@@ -5,10 +5,16 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logger import logger
-from app.models.company_invites_model import CompanyInvitesModel, InviteStatus
+from app.models.company_invites_model import (
+    CompanyInvitesModel,
+    InviteStatus,
+    InviteType,
+)
+from app.models.company_model import CompanyModel
 from app.models.company_user_role_model import CompanyUserRoleModel, RoleEnum
 from app.models.user_model import UserModel
 from app.repository.users_repository import UserRepository
+from app.schemas.company_schema import RequestSentSchema
 from app.schemas.user_schema import SignUpSchema, UserSchema, UserUpdateSchema
 from app.utils.jwt_util import (
     create_access_token,
@@ -161,6 +167,35 @@ class UserService:
             await session.commit()
 
         return {"message": f"You have successfully {option}ed invitation"}
+
+    # =======================REQUEST=======================
+    async def request_send(
+        self,
+        request_data: RequestSentSchema,
+        current_user: UserModel,
+        session: AsyncSession,
+    ):
+        seek_company = await session.execute(
+            select(CompanyModel).where(CompanyModel.id == request_data.company_id)
+        )
+        company = seek_company.scalar_one_or_none()
+        if not company:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Company with company_id {request_data.company_id} is not found.",
+            )
+        request_sending = CompanyInvitesModel(
+            company_id=request_data.company_id,
+            invited_user_id=current_user.id,
+            invited_by_id=None,
+            type=InviteType.REQUEST,
+            status=InviteStatus.PENDING,
+        )
+        session.add(request_sending)
+        await session.commit()
+        await session.refresh(request_sending)
+
+        return {"message": f"Successfully sent request to {company.name} "}
 
 
 user_service = UserService(UserRepository())
