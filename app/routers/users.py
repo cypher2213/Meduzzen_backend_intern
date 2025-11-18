@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_session
 from app.models.user_model import UserModel
+from app.schemas.company_schema import RequestSentSchema
 from app.schemas.user_schema import (
     LoginResponseSchema,
     RefreshResponseSchema,
@@ -97,3 +98,21 @@ async def user_invite_switcher(
     return await user_service.invite_user_switcher(
         invite_id, option, current_user, session
     )
+
+
+@router.post("/me/request")
+async def send_request(
+    request: RequestSentSchema,
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await user_service.request_send(request, current_user, session)
+
+
+@router.delete("/request/{request_id}")
+async def cancel_request(
+    request_id: UUID,
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await user_service.request_cancel(request_id, current_user, session)
