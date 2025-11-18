@@ -39,3 +39,7 @@ class CompanyListSchema(BaseModel):
 class InviteSentSchema(BaseModel):
     company_id: UUID
     invited_user_id: UUID
+
+
+class RequestSentSchema(BaseModel):
+    company_id: UUID
