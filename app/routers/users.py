@@ -1,7 +1,7 @@
 from typing import List
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_session
@@ -49,7 +49,7 @@ async def get_current_user(user: UserModel = Depends(user_connect)):
     }
 
 
-@router.delete("/me")
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
 async def user_delete(
     session: AsyncSession = Depends(get_session),
     current_user: UserModel = Depends(user_connect),
