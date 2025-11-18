@@ -1,9 +1,12 @@
 from uuid import UUID
 
 from fastapi import HTTPException
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logger import logger
+from app.models.company_invites_model import CompanyInvitesModel, InviteStatus
+from app.models.company_user_role_model import CompanyUserRoleModel, RoleEnum
 from app.models.user_model import UserModel
 from app.repository.users_repository import UserRepository
 from app.schemas.user_schema import SignUpSchema, UserSchema, UserUpdateSchema
@@ -112,6 +115,52 @@ class UserService:
             raise
         except Exception as e:
             raise HTTPException(status_code=401, detail=str(e))
+
+    # =====================================INVITES==========================================
+
+    async def invite_user_switcher(
+        self,
+        invite_id: UUID,
+        option: str,
+        current_user: UserModel,
+        session: AsyncSession,
+    ):
+        invite_seek = await session.execute(
+            select(CompanyInvitesModel).where(CompanyInvitesModel.id == invite_id)
+        )
+        invite = invite_seek.scalar_one_or_none()
+        if not invite:
+            raise HTTPException(
+                status_code=404, detail=f"Invite with id {invite_id} does not exist!"
+            )
+        if invite.status != InviteStatus.PENDING:
+            raise HTTPException(
+                status_code=400, detail="This invite is already accepted or declined."
+            )
+        if current_user.id != invite.invited_user_id:
+            raise HTTPException(
+                status_code=403,
+                detail="You do not have rights to modify this invitation",
+            )
+
+        if option not in ("accept", "decline"):
+            raise HTTPException(
+                status_code=400, detail="Option must be 'accept' or 'decline'"
+            )
+        elif option == "accept":
+            invite.status = InviteStatus.ACCEPTED
+            user_addition_to_company = CompanyUserRoleModel(
+                user_id=current_user.id,
+                company_id=invite.company_id,
+                role=RoleEnum.MEMBER,
+            )
+            session.add(user_addition_to_company)
+            await session.commit()
+        elif option == "decline":
+            invite.status = InviteStatus.DECLINED
+            await session.commit()
+
+        return {"message": f"You have successfully {option}ed invitation"}
 
 
 user_service = UserService(UserRepository())
