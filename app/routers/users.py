@@ -82,3 +82,18 @@ async def user_login(user: SignInSchema, session: AsyncSession = Depends(get_ses
 @router.post("/refresh", response_model=RefreshResponseSchema)
 async def user_refresh_token(refresh_token: str):
     return await user_service.refresh_access_token(refresh_token)
+
+
+# ======================INVITES=================
+
+
+@router.post("/me/{option}/{invite_id}")
+async def user_invite_switcher(
+    invite_id: UUID,
+    option: str,
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await user_service.invite_user_switcher(
+        invite_id, option, current_user, session
+    )
