@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logger import logger
+from app.models.user_model import UserModel
 from app.repository.users_repository import UserRepository
 from app.schemas.user_schema import SignUpSchema, UserSchema, UserUpdateSchema
 from app.utils.jwt_util import (
@@ -38,17 +39,16 @@ class UserService:
         logger.info(f"User created: id={user.id}, name={user.name}")
         return user
 
-    async def delete_user(self, session: AsyncSession, current_user: dict):
-        user = await self.repo.get_by_id(session, current_user.id)
+    async def delete_user(self, session: AsyncSession, current_user: UserModel):
+        user = await self.repo.get(session, current_user.id)
         if not user:
             logger.warning(f"Attempted delete — user not found: id={current_user.id}")
             raise HTTPException(status_code=404, detail="User not found")
         await self.repo.delete(session, user)
         logger.info(f"User deleted: id={current_user.id}, name={user.name}")
-        return {"message": f"User with name {user.name} successfully deleted!"}
 
     async def get_user_by_id(self, session: AsyncSession, user_id: UUID):
-        user = await self.repo.get_by_id(session, user_id)
+        user = await self.repo.get(session, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         return {"message": "User Found", "user": user}
@@ -57,9 +57,9 @@ class UserService:
         self,
         updated_user: UserUpdateSchema,
         session: AsyncSession,
-        current_user: dict,
+        current_user: UserModel,
     ):
-        user = await self.repo.get_by_id(session, current_user.id)
+        user = await self.repo.get(session, current_user.id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         filtered_data = updated_user.model_dump(exclude_none=True)
@@ -67,7 +67,10 @@ class UserService:
             raise HTTPException(status_code=400, detail="Email cannot be changed")
         if "password" in filtered_data:
             filtered_data["password"] = password_hash(filtered_data["password"])
-        updated_user_obj = await self.repo.update(session, user, filtered_data)
+
+        for key, value in filtered_data.items():
+            setattr(user, key, value)
+        updated_user_obj = await self.repo.update(session, user)
         logger.info(f"User updated: id={user.id}")
         return {
             "message": "User updated successfully",
