@@ -10,6 +10,7 @@ from app.models.company_invites_model import (
     InviteType,
 )
 from app.models.company_model import CompanyModel
+from app.models.company_user_role_model import RoleEnum
 from app.models.user_model import UserModel
 from app.repository.companies_repository import CompaniesRepository
 from app.schemas.company_schema import (
@@ -36,7 +37,7 @@ class CompaniesService:
         return company_list or []
 
     async def get_company(self, company_id: UUID, session: AsyncSession):
-        company = await self.repo.company_get(company_id, session)
+        company = await self.repo.get(session, company_id)
         if not company:
             raise HTTPException(
                 status_code=404,
@@ -47,14 +48,9 @@ class CompaniesService:
     async def company_create(
         self, company_data: CompanyCreate, db: AsyncSession, user: UserModel
     ):
-        new_company = await self.repo.create_company(
-            db=db,
-            name=company_data.name,
-            description=company_data.description,
-            is_public=company_data.is_public,
-        )
+        new_company = await self.repo.create(db, data=company_data.model_dump())
         await self.repo.add_user_role(
-            db=db, user_id=user.id, company_id=new_company.id, role="owner"
+            db=db, user_id=user.id, company_id=new_company.id, role=RoleEnum.OWNER
         )
         await db.refresh(new_company)
         return {
@@ -78,7 +74,7 @@ class CompaniesService:
         for field, value in company_data.model_dump(exclude_unset=True).items():
             setattr(company, field, value)
 
-        updated_company = await self.repo.update_company(db, company)
+        updated_company = await self.repo.update(db, company)
 
         return {
             "message": f"Company {updated_company.name} updated successfully.",
@@ -86,13 +82,13 @@ class CompaniesService:
         }
 
     async def company_delete(self, company_id: UUID, db: AsyncSession, user: UserModel):
-        company = await self.repo.delete_company(db, company_id, user)
+        company = await self.repo.get_owner_company(db, company_id, user.id)
         if not company:
             raise HTTPException(
                 status_code=403,
                 detail="You are not the owner of this company or it does not exist.",
             )
-        return {"message": f"Company {company.name} deleted successfully."}
+        await self.repo.delete(db, company)
 
     # ========================INVITES====================
 

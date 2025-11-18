@@ -21,30 +21,6 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     op.create_table(
-        "users",
-        sa.Column(
-            "id",
-            postgresql.UUID(as_uuid=True),
-            primary_key=True,
-            default=sa.text("gen_random_uuid()"),
-        ),
-        sa.Column("name", sa.String(), nullable=True),
-        sa.Column("password", sa.String(), nullable=True),
-        sa.Column("age", sa.Integer(), nullable=True),
-        sa.Column("email", sa.String(), nullable=False, unique=True, index=True),
-        sa.Column(
-            "created_at",
-            postgresql.TIMESTAMP(timezone=True),
-            server_default=sa.text("now()"),
-        ),
-        sa.Column(
-            "updated_at",
-            postgresql.TIMESTAMP(timezone=True),
-            server_default=sa.text("now()"),
-        ),
-    )
-
-    op.create_table(
         "companies",
         sa.Column(
             "id",
@@ -86,6 +62,5 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_table("company_user_roles")
     op.drop_table("companies")
-    op.drop_table("users")
 
     # ### end Alembic commands ###

@@ -1,4 +1,4 @@
-from unittest.mock import ANY, AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
@@ -53,21 +53,22 @@ async def test_get_all_companies(service, repo_mock, async_session_mock):
 @pytest.mark.asyncio
 async def test_get_company_found(service, repo_mock, async_session_mock):
     company = MagicMock(spec=CompanyModel, name="TestCompany")
-    repo_mock.company_get.return_value = company
+    repo_mock.get.return_value = company
 
     result = await service.get_company(uuid4(), async_session_mock)
 
     assert result["message"] == "Company successfully found!"
     assert result["company"] == company
-    repo_mock.company_get.assert_awaited_once()
+    repo_mock.get.assert_awaited_once()
 
 
 @pytest.mark.asyncio
 async def test_get_company_not_found(service, repo_mock, async_session_mock):
-    repo_mock.company_get.return_value = None
+    repo_mock.get.return_value = None
 
     with pytest.raises(HTTPException) as exc:
         await service.get_company(uuid4(), async_session_mock)
+
     assert exc.value.status_code == 404
     assert exc.value.detail == "Company not found"
 
@@ -76,13 +77,13 @@ async def test_get_company_not_found(service, repo_mock, async_session_mock):
 async def test_company_create(service, repo_mock, async_session_mock, user_mock):
     company_data = CompanyCreate(name="NewCo", description="Desc", is_public=True)
     company_obj = MagicMock(spec=CompanyModel, id=uuid4(), name="NewCo")
-    repo_mock.create_company.return_value = company_obj
+    repo_mock.create.return_value = company_obj
 
     result = await service.company_create(company_data, async_session_mock, user_mock)
 
     assert result["message"] == f"Company created successfully by {user_mock.name}."
     assert result["company"] == company_obj
-    repo_mock.create_company.assert_awaited_once()
+    repo_mock.create.assert_awaited_once()
     repo_mock.add_user_role.assert_awaited_once_with(
         db=async_session_mock,
         user_id=user_mock.id,
@@ -99,7 +100,7 @@ async def test_company_update_success(
     company_id = uuid4()
     company_obj = MagicMock(spec=CompanyModel, id=company_id, name="OldName")
     repo_mock.get_owner_company.return_value = company_obj
-    repo_mock.update_company.return_value = company_obj
+    repo_mock.update.return_value = company_obj
 
     update_data = CompanyUpdate(name="NewName")
 
@@ -112,7 +113,7 @@ async def test_company_update_success(
     repo_mock.get_owner_company.assert_awaited_once_with(
         async_session_mock, company_id, user_mock.id
     )
-    repo_mock.update_company.assert_awaited_once_with(async_session_mock, company_obj)
+    repo_mock.update.assert_awaited_once_with(async_session_mock, company_obj)
 
 
 @pytest.mark.asyncio
@@ -134,23 +135,22 @@ async def test_company_delete_success(
     service, repo_mock, async_session_mock, user_mock
 ):
     company_obj = MagicMock(spec=CompanyModel, name="DeleteMe")
-    repo_mock.delete_company.return_value = company_obj
+    repo_mock.get_owner_company.return_value = company_obj
+    repo_mock.delete.return_value = None
 
-    result = await service.company_delete(uuid4(), async_session_mock, user_mock)
+    await service.company_delete(uuid4(), async_session_mock, user_mock)
 
-    assert result["message"] == f"Company {company_obj.name} deleted successfully."
-    repo_mock.delete_company.assert_awaited_once_with(
-        async_session_mock, ANY, user_mock
-    )
+    repo_mock.delete.assert_awaited_once_with(async_session_mock, company_obj)
 
 
 @pytest.mark.asyncio
 async def test_company_delete_forbidden(
     service, repo_mock, async_session_mock, user_mock
 ):
-    repo_mock.delete_company.return_value = None
+    repo_mock.get_owner_company.return_value = None
 
     with pytest.raises(HTTPException) as exc:
         await service.company_delete(uuid4(), async_session_mock, user_mock)
+
     assert exc.value.status_code == 403
     assert "owner" in exc.value.detail
