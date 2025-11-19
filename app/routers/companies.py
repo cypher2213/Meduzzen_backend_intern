@@ -11,6 +11,7 @@ from app.schemas.company_schema import (
     CompanySchema,
     CompanyUpdate,
     InviteSentSchema,
+    RequestSentSchema,
 )
 from app.services.companies_service import companies_service
 from app.utils.user_util import user_connect
@@ -94,4 +95,16 @@ async def owner_request_switcher(
 ):
     return await companies_service.request_owner_switcher(
         request_id, option, current_user, session
+    )
+
+
+@router.delete("/remove/{user_id}")
+async def owner_remove_user(
+    user_id: UUID,
+    company_data: RequestSentSchema,
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await companies_service.remove_owner_user(
+        user_id, company_data, current_user, session
     )
