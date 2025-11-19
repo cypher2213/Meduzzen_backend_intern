@@ -197,5 +197,30 @@ class UserService:
 
         return {"message": f"Successfully sent request to {company.name} "}
 
+    async def request_cancel(
+        self, request_id: UUID, current_user: UserModel, session: AsyncSession
+    ):
+        seek_request = await session.execute(
+            select(CompanyInvitesModel).where(CompanyInvitesModel.id == request_id)
+        )
+        request = seek_request.scalar_one_or_none()
+        if not request:
+            raise HTTPException(
+                status_code=404, detail=f"Request with id {request_id} is not found!"
+            )
+        if request.type != InviteType.REQUEST:
+            raise HTTPException(status_code=400, detail="You can cancel only requests")
+        if request.type != InviteStatus.PENDING:
+            raise HTTPException(
+                status_code=400, detail="This request has been already canceled"
+            )
+        if request.invited_user_id != current_user.id:
+            raise HTTPException(
+                status_code=403, detail="You can cancel only your requests"
+            )
+        request.status = InviteStatus.CANCELED
+        await session.commit()
+        return {"message": "Your invitation was successfully canceled"}
+
 
 user_service = UserService(UserRepository())
