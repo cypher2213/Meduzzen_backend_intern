@@ -261,5 +261,31 @@ class UserService:
 
         return {"message": "You have successfully left the company."}
 
+    # ========================MANAGING REQUESTS=========
+
+    async def show_user_requests(self, current_user: UserModel, session: AsyncSession):
+        user_seek = await session.execute(
+            select(CompanyInvitesModel).where(
+                CompanyInvitesModel.invited_user_id == current_user.id,
+                CompanyInvitesModel.type == InviteType.REQUEST,
+            )
+        )
+        user_requests = user_seek.scalars().all()
+        if not user_requests:
+            return {"message": "No requests from you"}
+        return {"message": "Successfully found requests", "requests": user_requests}
+
+    async def show_user_invites(self, current_user: UserModel, session: AsyncSession):
+        user_seek = await session.execute(
+            select(CompanyInvitesModel).where(
+                CompanyInvitesModel.invited_user_id == current_user.id,
+                CompanyInvitesModel.type == InviteType.INVITE,
+            )
+        )
+        user_invites = user_seek.scalars().all()
+        if not user_invites:
+            return {"message": "No invites were sent to you"}
+        return {"message": "Successfully found invites", "invites": user_invites}
+
 
 user_service = UserService(UserRepository())
