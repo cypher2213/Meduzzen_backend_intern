@@ -18,6 +18,7 @@ from app.schemas.company_schema import (
     CompanySchema,
     CompanyUpdate,
     InviteSentSchema,
+    RequestSentSchema
 )
 
 
@@ -149,7 +150,6 @@ class CompaniesService:
         self,
         request_id: UUID,
         option: str,
-        current_user: UserModel,
         session: AsyncSession,
     ):
         request_seek = await session.execute(
@@ -182,6 +182,37 @@ class CompaniesService:
             await session.commit()
 
         return {"message": f"You have successfully {option}ed request"}
+    
+    
+    async def remove_owner_user(self,user_id:UUID,company_data:RequestSentSchema,current_user:UserModel,session:AsyncSession):
+        current_role_seek = await session.execute(
+        select(CompanyUserRoleModel).where(CompanyUserRoleModel.company_id == company_data.company_id,CompanyUserRoleModel.user_id == current_user.id,))
+        current_role = current_role_seek.scalar_one_or_none()
+
+        if not current_role or current_role.role != RoleEnum.OWNER:
+            raise HTTPException(
+            status_code=403,
+            detail="Only company owner can remove users"
+        )
+        
+        user_seek = await session.execute(select(CompanyUserRoleModel).where(CompanyUserRoleModel.user_id == user_id))
+        user = user_seek.scalar_one_or_none()
+        if not user:
+            raise HTTPException(
+                status_code=404,
+                detail="User not found"
+            )
+        if user.role != RoleEnum.MEMBER:
+            raise HTTPException(
+                status_code=400,
+                detail="You can delete only member users"
+            )
+        await session.delete(user)
+        await session.commit()
+        return {"message": "User deleted successfully!"}
+
+        
+
 
 
 companies_service = CompaniesService(CompaniesRepository())
