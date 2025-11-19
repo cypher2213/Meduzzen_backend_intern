@@ -27,6 +27,26 @@ async def show_all_companies(
     return companies
 
 
+# =========================MANAGING INVITES AND REQUESTS=========
+
+
+@router.get("/invites")
+async def owner_list_invite(
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await companies_service.invite_owner_list(current_user, session)
+
+
+@router.get("/requests/pending")
+async def owner_pending_requests(
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await companies_service.pending_requests_list(current_user, session)
+
+
+# ==================================MANAGIN COMPANIES==============
 @router.get("/{company_id}")
 async def show_company(company_id: UUID, session: AsyncSession = Depends(get_session)):
     return await companies_service.get_company(company_id, session)
