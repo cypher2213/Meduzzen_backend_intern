@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.company_invites_model import (
@@ -299,6 +299,59 @@ class CompaniesService:
         return {
             "message": "Successfully found pending membership requests",
             "requests": pending_requests,
+        }
+
+    async def list_company_users(
+        self,
+        company_data: RequestSentSchema,
+        limit: int,
+        offset: int,
+        current_user: UserModel,
+        session: AsyncSession,
+    ):
+        company_seek = await session.execute(
+            select(CompanyModel).where(CompanyModel.id == company_data.company_id)
+        )
+        company = company_seek.scalar_one_or_none()
+
+        if not company:
+            raise HTTPException(status_code=404, detail="Company not found")
+
+        membership_seek = await session.execute(
+            select(CompanyUserRoleModel).where(
+                CompanyUserRoleModel.company_id == company_data.company_id,
+                CompanyUserRoleModel.user_id == current_user.id,
+            )
+        )
+        membership = membership_seek.scalar_one_or_none()
+
+        if not membership:
+            raise HTTPException(
+                status_code=403, detail="You do not have access to this company"
+            )
+
+        total_seek = await session.execute(
+            select(func.count(CompanyUserRoleModel.user_id)).where(
+                CompanyUserRoleModel.company_id == company_data.company_id
+            )
+        )
+        total = total_seek.scalar()
+
+        users_seek = await session.execute(
+            select(UserModel)
+            .join(CompanyUserRoleModel, CompanyUserRoleModel.user_id == UserModel.id)
+            .where(CompanyUserRoleModel.company_id == company_data.company_id)
+            .offset(offset)
+            .limit(limit)
+        )
+        users = users_seek.scalars().all()
+
+        return {
+            "company_id": str(company_data.company_id),
+            "total_users": total,
+            "limit": limit,
+            "offset": offset,
+            "users": users,
         }
 
 

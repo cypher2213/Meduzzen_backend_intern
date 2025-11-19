@@ -46,6 +46,23 @@ async def owner_pending_requests(
     return await companies_service.pending_requests_list(current_user, session)
 
 
+@router.get("/users")
+async def get_company_users(
+    company_data: RequestSentSchema,
+    limit: int = 20,
+    offset: int = 0,
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await companies_service.list_company_users(
+        company_data=company_data,
+        limit=limit,
+        offset=offset,
+        current_user=current_user,
+        session=session,
+    )
+
+
 # ==================================MANAGIN COMPANIES==============
 @router.get("/{company_id}")
 async def show_company(company_id: UUID, session: AsyncSession = Depends(get_session)):
