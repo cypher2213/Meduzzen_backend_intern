@@ -125,3 +125,22 @@ async def user_leave(
     session: AsyncSession = Depends(get_session),
 ):
     return await user_service.leave_user(company, current_user, session)
+
+
+# ========================MANAGING REQUESTS=========
+
+
+@router.get("/me/requests")
+async def user_show_requests(
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await user_service.show_user_requests(current_user, session)
+
+
+@router.get("/me/invites")
+async def user_show_invites(
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await user_service.show_user_invites(current_user, session)
