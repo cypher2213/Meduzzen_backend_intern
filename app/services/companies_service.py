@@ -150,6 +150,7 @@ class CompaniesService:
         self,
         request_id: UUID,
         option: str,
+        current_user: UserModel,
         session: AsyncSession,
     ):
         request_seek = await session.execute(
