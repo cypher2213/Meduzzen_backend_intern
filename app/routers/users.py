@@ -109,7 +109,7 @@ async def send_request(
     return await user_service.request_send(request, current_user, session)
 
 
-@router.delete("/request/{request_id}")
+@router.patch("/me/request/{request_id}")
 async def cancel_request(
     request_id: UUID,
     current_user: UserModel = Depends(user_connect),
