@@ -222,5 +222,44 @@ class UserService:
         await session.commit()
         return {"message": "Your invitation was successfully canceled"}
 
+    async def leave_user(
+        self,
+        company_data: RequestSentSchema,
+        current_user: UserModel,
+        session: AsyncSession,
+    ):
+        role_seek = await session.execute(
+            select(CompanyUserRoleModel).where(
+                CompanyUserRoleModel.user_id == current_user.id,
+                CompanyUserRoleModel.company_id == company_data.company_id,
+            )
+        )
+        user_role = role_seek.scalar_one_or_none()
+
+        if not user_role:
+            raise HTTPException(
+                status_code=404, detail="You are not a member of this company"
+            )
+
+        if user_role.role == RoleEnum.OWNER:
+            owners_seek = await session.execute(
+                select(CompanyUserRoleModel).where(
+                    CompanyUserRoleModel.company_id == company_data.company_id,
+                    CompanyUserRoleModel.role == RoleEnum.OWNER,
+                )
+            )
+            owners = owners_seek.scalars().all()
+
+            if len(owners) == 1:
+                raise HTTPException(
+                    status_code=400,
+                    detail="You cannot leave the company as the only owner. "
+                    "Transfer ownership first.",
+                )
+        await session.delete(user_role)
+        await session.commit()
+
+        return {"message": "You have successfully left the company."}
+
 
 user_service = UserService(UserRepository())
