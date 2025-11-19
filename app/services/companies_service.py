@@ -218,5 +218,88 @@ class CompaniesService:
         await session.commit()
         return {"message": "User deleted successfully!"}
 
+    # ========================MANAGING INVITES=========
+    async def invite_owner_list(self, current_user: UserModel, session: AsyncSession):
+        owner_company_ids = (
+            (
+                await session.execute(
+                    select(CompanyUserRoleModel.company_id).where(
+                        CompanyUserRoleModel.user_id == current_user.id,
+                        CompanyUserRoleModel.role == RoleEnum.OWNER,
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+
+        if not owner_company_ids:
+            raise HTTPException(
+                status_code=403,
+                detail="You are not an owner of any company",
+            )
+
+        invites_query = await session.execute(
+            select(CompanyInvitesModel.invited_user_id).where(
+                CompanyInvitesModel.company_id.in_(owner_company_ids),
+                CompanyInvitesModel.type == InviteType.INVITE,
+            )
+        )
+
+        invited_user_ids = invites_query.scalars().all()
+
+        if not invited_user_ids:
+            return {"message": "No invited users", "users": []}
+
+        users_query = await session.execute(
+            select(UserModel).where(UserModel.id.in_(invited_user_ids))
+        )
+
+        users = users_query.scalars().all()
+
+        return {
+            "message": "Successfully found invited users",
+            "users": users,
+        }
+
+    async def pending_requests_list(
+        self, current_user: UserModel, session: AsyncSession
+    ):
+        owner_company_ids = (
+            (
+                await session.execute(
+                    select(CompanyUserRoleModel.company_id).where(
+                        CompanyUserRoleModel.user_id == current_user.id,
+                        CompanyUserRoleModel.role == RoleEnum.OWNER,
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+
+        if not owner_company_ids:
+            raise HTTPException(
+                status_code=403, detail="You are not an owner of any company"
+            )
+
+        pending_seek = await session.execute(
+            select(CompanyInvitesModel).where(
+                CompanyInvitesModel.company_id.in_(owner_company_ids),
+                CompanyInvitesModel.status == InviteStatus.PENDING,
+                CompanyInvitesModel.type == InviteType.REQUEST,
+            )
+        )
+
+        pending_requests = pending_seek.scalars().all()
+
+        if not pending_requests:
+            return {"message": "No pending membership requests", "requests": []}
+
+        return {
+            "message": "Successfully found pending membership requests",
+            "requests": pending_requests,
+        }
+
 
 companies_service = CompaniesService(CompaniesRepository())
