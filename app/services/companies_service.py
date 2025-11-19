@@ -10,7 +10,7 @@ from app.models.company_invites_model import (
     InviteType,
 )
 from app.models.company_model import CompanyModel
-from app.models.company_user_role_model import RoleEnum
+from app.models.company_user_role_model import CompanyUserRoleModel, RoleEnum
 from app.models.user_model import UserModel
 from app.repository.companies_repository import CompaniesRepository
 from app.schemas.company_schema import (
@@ -144,6 +144,44 @@ class CompaniesService:
         await session.delete(invitation)
         await session.commit()
         return {"message": "Invitation deleted successfully!"}
+
+    async def request_owner_switcher(
+        self,
+        request_id: UUID,
+        option: str,
+        current_user: UserModel,
+        session: AsyncSession,
+    ):
+        request_seek = await session.execute(
+            select(CompanyInvitesModel).where(CompanyInvitesModel.id == request_id)
+        )
+        request = request_seek.scalar_one_or_none()
+        if not request:
+            raise HTTPException(
+                status_code=404, detail=f"Request with id {request_id} does not exist!"
+            )
+        if request.status != InviteStatus.PENDING:
+            raise HTTPException(
+                status_code=400, detail="This request is already accepted or declined."
+            )
+        if option not in ("accept", "decline"):
+            raise HTTPException(
+                status_code=400, detail="Option must be 'accept' or 'decline'"
+            )
+        elif option == "accept":
+            request.status = InviteStatus.ACCEPTED
+            user_addition_to_company = CompanyUserRoleModel(
+                user_id=request.invited_user_id,
+                company_id=request.company_id,
+                role=RoleEnum.MEMBER,
+            )
+            session.add(user_addition_to_company)
+            await session.commit()
+        elif option == "decline":
+            request.status = InviteStatus.DECLINED
+            await session.commit()
+
+        return {"message": f"You have successfully {option}ed request"}
 
 
 companies_service = CompaniesService(CompaniesRepository())
