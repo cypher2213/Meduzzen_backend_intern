@@ -80,3 +80,18 @@ async def cancel_invite(
     session: AsyncSession = Depends(get_session),
 ):
     return await companies_service.invite_cancel(invite_id, current_user, session)
+
+
+# ===============================REQUESTS=======================================
+
+
+@router.post("/request/{option}/{request_id}")
+async def owner_request_switcher(
+    request_id: UUID,
+    option: str,
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await companies_service.request_owner_switcher(
+        request_id, option, current_user, session
+    )
