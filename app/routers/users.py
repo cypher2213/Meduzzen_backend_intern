@@ -85,7 +85,7 @@ async def user_refresh_token(refresh_token: str):
     return await user_service.refresh_access_token(refresh_token)
 
 
-# ======================INVITES=================
+# ======================INVITES AND REQUESTS=================
 
 
 @router.post("/me/{option}/{invite_id}")
