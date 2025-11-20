@@ -111,7 +111,7 @@ async def send_invite(
     return await companies_service.invite_send(invite, current_user, session)
 
 
-@router.delete("/invite/{invite_id}")
+@router.patch("/invite/{invite_id}")
 async def cancel_invite(
     invite_id: UUID,
     current_user: UserModel = Depends(user_connect),
