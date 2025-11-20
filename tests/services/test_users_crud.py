@@ -1,9 +1,12 @@
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
+from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException
 
+from app.models.company_invites_model import InviteStatus, InviteType
+from app.models.company_user_role_model import RoleEnum
 from app.schemas.user_schema import SignInSchema, SignUpSchema, UserUpdateSchema
 
 
@@ -96,3 +99,216 @@ async def test_login_user_invalid_password(
 
     assert exc.value.status_code == 401
     assert exc.value.detail == "Invalid credentials"
+
+
+@pytest.mark.asyncio
+async def test_invite_user_switcher_decline(
+    user_service, mock_repo, mock_session, fake_user
+):
+    invite_id = uuid4()
+
+    invite = MagicMock(
+        id=invite_id, invited_user_id=fake_user.id, status=InviteStatus.PENDING
+    )
+
+    mock_repo.get_invite.return_value = invite
+
+    result = await user_service.invite_user_switcher(
+        invite_id=invite_id,
+        option="decline",
+        current_user=fake_user,
+        session=mock_session,
+    )
+
+    mock_session.commit.assert_called_once()
+
+    assert "decline" in result["message"]
+
+
+@pytest.mark.asyncio
+async def test_invite_user_switcher_not_found(
+    user_service, mock_repo, mock_session, fake_user
+):
+    mock_repo.get_invite.return_value = None
+
+    with pytest.raises(HTTPException) as exc:
+        await user_service.invite_user_switcher(
+            invite_id=uuid4(),
+            option="accept",
+            current_user=fake_user,
+            session=mock_session,
+        )
+
+    assert exc.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_invite_user_switcher_forbidden(
+    user_service, mock_repo, mock_session, fake_user
+):
+    invite = MagicMock(
+        invited_user_id=uuid4(),
+        status=InviteStatus.PENDING,
+    )
+
+    mock_repo.get_invite.return_value = invite
+
+    with pytest.raises(HTTPException) as exc:
+        await user_service.invite_user_switcher(
+            invite_id=uuid4(),
+            option="accept",
+            current_user=fake_user,
+            session=mock_session,
+        )
+
+    assert exc.value.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_invite_user_switcher_invalid_option(
+    user_service, mock_repo, mock_session, fake_user
+):
+    invite = MagicMock(
+        invited_user_id=fake_user.id,
+        status=InviteStatus.PENDING,
+    )
+
+    mock_repo.get_invite.return_value = invite
+
+    with pytest.raises(HTTPException) as exc:
+        await user_service.invite_user_switcher(
+            invite_id=uuid4(),
+            option="bad",
+            current_user=fake_user,
+            session=mock_session,
+        )
+
+    assert exc.value.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_request_send_success(user_service, mock_repo, mock_session, fake_user):
+    company = MagicMock(name="MegaCorp")
+    mock_repo.get_company.return_value = company
+
+    request_data = MagicMock(company_id=uuid4())
+
+    result = await user_service.request_send(
+        request_data=request_data,
+        current_user=fake_user,
+        session=mock_session,
+    )
+
+    mock_session.add.assert_called_once()
+    mock_session.commit.assert_called_once()
+
+    assert "Successfully sent request" in result["message"]
+
+
+@pytest.mark.asyncio
+async def test_request_send_company_not_found(
+    user_service, mock_repo, mock_session, fake_user
+):
+    mock_repo.get_company.return_value = None
+
+    with pytest.raises(HTTPException) as exc:
+        await user_service.request_send(
+            request_data=MagicMock(company_id=uuid4()),
+            current_user=fake_user,
+            session=mock_session,
+        )
+
+    assert exc.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_request_cancel_success(user_service, mock_repo, mock_session, fake_user):
+    request = MagicMock(
+        type=InviteType.REQUEST,
+        status=InviteStatus.PENDING,
+        invited_user_id=fake_user.id,
+    )
+
+    mock_repo.get_invite.return_value = request
+
+    result = await user_service.request_cancel(
+        request_id=uuid4(),
+        current_user=fake_user,
+        session=mock_session,
+    )
+
+    assert "successfully canceled" in result["message"].lower()
+    mock_session.commit.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_request_cancel_wrong_type(
+    user_service, mock_repo, mock_session, fake_user
+):
+    request = MagicMock(type=InviteType.INVITE)
+    mock_repo.get_invite.return_value = request
+
+    with pytest.raises(HTTPException) as exc:
+        await user_service.request_cancel(uuid4(), fake_user, mock_session)
+
+    assert exc.value.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_request_cancel_forbidden(
+    user_service, mock_repo, mock_session, fake_user
+):
+    request = MagicMock(
+        type=InviteType.REQUEST, status=InviteStatus.PENDING, invited_user_id=uuid4()
+    )
+    mock_repo.get_invite.return_value = request
+
+    with pytest.raises(HTTPException) as exc:
+        await user_service.request_cancel(uuid4(), fake_user, mock_session)
+
+    assert exc.value.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_leave_user_success(user_service, mock_repo, mock_session, fake_user):
+    role = MagicMock(role=RoleEnum.MEMBER)
+    mock_repo.get_user_role.return_value = role
+
+    result = await user_service.leave_user(
+        MagicMock(company_id=uuid4()), fake_user, mock_session
+    )
+
+    mock_repo.delete_user_role.assert_called_once()
+    assert "successfully left" in result["message"].lower()
+
+
+@pytest.mark.asyncio
+async def test_leave_user_not_member(user_service, mock_repo, mock_session, fake_user):
+    mock_repo.get_user_role.return_value = None
+
+    with pytest.raises(HTTPException) as exc:
+        await user_service.leave_user(
+            MagicMock(company_id=uuid4()),
+            fake_user,
+            mock_session,
+        )
+
+    assert exc.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_leave_user_last_owner_forbidden(
+    user_service, mock_repo, mock_session, fake_user
+):
+    mock_repo.get_user_role.return_value = MagicMock(role=RoleEnum.OWNER)
+
+    mock_repo.get_users_with_roles.return_value = [("user", RoleEnum.OWNER)]
+
+    with pytest.raises(HTTPException) as exc:
+        await user_service.leave_user(
+            MagicMock(company_id=uuid4()),
+            fake_user,
+            mock_session,
+        )
+
+    assert exc.value.status_code == 400
