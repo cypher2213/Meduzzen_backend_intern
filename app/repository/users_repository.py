@@ -5,7 +5,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.company_invites_model import (
     CompanyInvitesModel,
-    InviteStatus,
     InviteType,
 )
 from app.models.company_model import CompanyModel
