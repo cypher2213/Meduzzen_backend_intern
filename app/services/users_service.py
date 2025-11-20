@@ -1,7 +1,6 @@
 from uuid import UUID
 
 from fastapi import HTTPException
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logger import logger
@@ -10,7 +9,6 @@ from app.models.company_invites_model import (
     InviteStatus,
     InviteType,
 )
-from app.models.company_model import CompanyModel
 from app.models.company_user_role_model import CompanyUserRoleModel, RoleEnum
 from app.models.user_model import UserModel
 from app.repository.users_repository import UserRepository
@@ -131,10 +129,7 @@ class UserService:
         current_user: UserModel,
         session: AsyncSession,
     ):
-        invite_seek = await session.execute(
-            select(CompanyInvitesModel).where(CompanyInvitesModel.id == invite_id)
-        )
-        invite = invite_seek.scalar_one_or_none()
+        invite = await self.repo.get_invite(session, invite_id)
         if not invite:
             raise HTTPException(
                 status_code=404, detail=f"Invite with id {invite_id} does not exist!"
@@ -175,10 +170,7 @@ class UserService:
         current_user: UserModel,
         session: AsyncSession,
     ):
-        seek_company = await session.execute(
-            select(CompanyModel).where(CompanyModel.id == request_data.company_id)
-        )
-        company = seek_company.scalar_one_or_none()
+        company = await self.repo.get_company(session, request_data.company_id)
         if not company:
             raise HTTPException(
                 status_code=404,
@@ -200,17 +192,14 @@ class UserService:
     async def request_cancel(
         self, request_id: UUID, current_user: UserModel, session: AsyncSession
     ):
-        seek_request = await session.execute(
-            select(CompanyInvitesModel).where(CompanyInvitesModel.id == request_id)
-        )
-        request = seek_request.scalar_one_or_none()
+        request = await self.repo.get_invite(session, request_id)
         if not request:
             raise HTTPException(
                 status_code=404, detail=f"Request with id {request_id} is not found!"
             )
         if request.type != InviteType.REQUEST:
             raise HTTPException(status_code=400, detail="You can cancel only requests")
-        if request.type != InviteStatus.PENDING:
+        if request.status != InviteStatus.PENDING:
             raise HTTPException(
                 status_code=400, detail="This request has been already canceled"
             )
@@ -228,61 +217,36 @@ class UserService:
         current_user: UserModel,
         session: AsyncSession,
     ):
-        role_seek = await session.execute(
-            select(CompanyUserRoleModel).where(
-                CompanyUserRoleModel.user_id == current_user.id,
-                CompanyUserRoleModel.company_id == company_data.company_id,
-            )
+        user_role = await self.repo.get_user_role(
+            session, company_data.company_id, current_user.id
         )
-        user_role = role_seek.scalar_one_or_none()
-
         if not user_role:
             raise HTTPException(
                 status_code=404, detail="You are not a member of this company"
             )
-
         if user_role.role == RoleEnum.OWNER:
-            owners_seek = await session.execute(
-                select(CompanyUserRoleModel).where(
-                    CompanyUserRoleModel.company_id == company_data.company_id,
-                    CompanyUserRoleModel.role == RoleEnum.OWNER,
-                )
+            owners = await self.repo.get_users_with_roles(
+                session, company_data.company_id, limit=1000, offset=0
             )
-            owners = owners_seek.scalars().all()
-
             if len(owners) == 1:
                 raise HTTPException(
                     status_code=400,
                     detail="You cannot leave the company as the only owner. "
                     "Transfer ownership first.",
                 )
-        await session.delete(user_role)
-        await session.commit()
-
+        await self.repo.delete_user_role(session, user_role)
         return {"message": "You have successfully left the company."}
 
     # ========================MANAGING REQUESTS=========
 
     async def show_user_requests(self, current_user: UserModel, session: AsyncSession):
-        user_seek = await session.execute(
-            select(CompanyInvitesModel).where(
-                CompanyInvitesModel.invited_user_id == current_user.id,
-                CompanyInvitesModel.type == InviteType.REQUEST,
-            )
-        )
-        user_requests = user_seek.scalars().all()
+        user_requests = await self.repo.get_user_requests(session, current_user.id)
         if not user_requests:
             return {"message": "No requests from you"}
         return {"message": "Successfully found requests", "requests": user_requests}
 
     async def show_user_invites(self, current_user: UserModel, session: AsyncSession):
-        user_seek = await session.execute(
-            select(CompanyInvitesModel).where(
-                CompanyInvitesModel.invited_user_id == current_user.id,
-                CompanyInvitesModel.type == InviteType.INVITE,
-            )
-        )
-        user_invites = user_seek.scalars().all()
+        user_invites = await self.repo.get_user_invites(session, current_user.id)
         if not user_invites:
             return {"message": "No invites were sent to you"}
         return {"message": "Successfully found invites", "invites": user_invites}
