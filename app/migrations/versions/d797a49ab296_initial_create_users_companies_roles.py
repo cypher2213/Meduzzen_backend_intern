@@ -55,7 +55,11 @@ def upgrade() -> None:
         sa.Column(
             "company_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("companies.id")
         ),
-        sa.Column("role", sa.String(), nullable=False, default="member"),
+        sa.Column(
+            "role",
+            postgresql.ENUM("member", "admin", "owner", name="role_enum"),
+            nullable=False,
+        ),
     )
 
 
