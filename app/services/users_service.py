@@ -201,20 +201,18 @@ class UserService:
 
     async def leave_user(
         self,
-        company_data: RequestSentSchema,
+        company_id: UUID,
         current_user: UserModel,
         session: AsyncSession,
     ):
-        user_role = await self.repo.get_user_role(
-            session, company_data.company_id, current_user.id
-        )
+        user_role = await self.repo.get_user_role(session, company_id, current_user.id)
         if not user_role:
             raise HTTPException(
                 status_code=404, detail="You are not a member of this company"
             )
         if user_role.role == RoleEnum.OWNER:
             owners = await self.repo.get_users_with_roles(
-                session, company_data.company_id, limit=1000, offset=0
+                session, company_id, limit=1000, offset=0
             )
             if len(owners) == 1:
                 raise HTTPException(
