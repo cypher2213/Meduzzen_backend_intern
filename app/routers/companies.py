@@ -11,7 +11,6 @@ from app.schemas.company_schema import (
     CompanySchema,
     CompanyUpdate,
     InviteSentSchema,
-    RequestSentSchema,
 )
 from app.services.companies_service import companies_service
 from app.utils.user_util import user_connect
@@ -46,16 +45,16 @@ async def owner_pending_requests(
     return await companies_service.pending_requests_list(current_user, session)
 
 
-@router.get("/users")
+@router.get("/{company_id}/users")
 async def get_company_users(
-    company_data: RequestSentSchema,
+    company_id: UUID,
     limit: int = 20,
     offset: int = 0,
     current_user: UserModel = Depends(user_connect),
     session: AsyncSession = Depends(get_session),
 ):
     return await companies_service.list_company_users(
-        company_data=company_data,
+        company_id=company_id,
         limit=limit,
         offset=offset,
         current_user=current_user,
@@ -135,13 +134,13 @@ async def owner_request_switcher(
     )
 
 
-@router.delete("/remove/{user_id}")
+@router.delete("/remove/{company_id}/{user_id}")
 async def owner_remove_user(
     user_id: UUID,
-    company_data: RequestSentSchema,
+    company_id: UUID,
     current_user: UserModel = Depends(user_connect),
     session: AsyncSession = Depends(get_session),
 ):
     return await companies_service.remove_user_by_owner(
-        user_id, company_data, current_user, session
+        user_id, company_id, current_user, session
     )
