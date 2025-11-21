@@ -141,7 +141,7 @@ class UserService:
             )
 
         if option not in (InviteStatus.ACCEPTED, InviteStatus.DECLINED):
-            raise HTTPException(400, f"Option must be accepted or declined")
+            raise HTTPException(400, "Option must be accepted or declined")
         elif option == InviteStatus.ACCEPTED:
             invite.status = InviteStatus.ACCEPTED
             await self.repo.add_user_role(
