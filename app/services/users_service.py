@@ -5,11 +5,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logger import logger
 from app.models.company_invites_model import (
-    CompanyInvitesModel,
     InviteStatus,
     InviteType,
 )
-from app.models.company_user_role_model import CompanyUserRoleModel, RoleEnum
+from app.models.company_user_role_model import RoleEnum
 from app.models.user_model import UserModel
 from app.repository.users_repository import UserRepository
 from app.schemas.company_schema import RequestSentSchema
@@ -144,24 +143,21 @@ class UserService:
                 detail="You do not have rights to modify this invitation",
             )
 
-        if option not in ("accept", "decline"):
-            raise HTTPException(
-                status_code=400, detail="Option must be 'accept' or 'decline'"
-            )
-        elif option == "accept":
+        if option not in (InviteStatus.ACCEPTED, InviteStatus.DECLINED):
+            raise HTTPException(400, f"Option must be accepted or declined")
+        elif option == InviteStatus.ACCEPTED:
             invite.status = InviteStatus.ACCEPTED
-            user_addition_to_company = CompanyUserRoleModel(
+            await self.repo.add_user_role(
+                session,
                 user_id=current_user.id,
                 company_id=invite.company_id,
                 role=RoleEnum.MEMBER,
             )
-            session.add(user_addition_to_company)
-            await session.commit()
-        elif option == "decline":
+        elif option == InviteStatus.DECLINED:
             invite.status = InviteStatus.DECLINED
             await session.commit()
 
-        return {"message": f"You have successfully {option}ed invitation"}
+        return {"message": f"You have successfully {option} invitation"}
 
     # =======================REQUEST=======================
     async def request_send(
@@ -176,16 +172,11 @@ class UserService:
                 status_code=404,
                 detail=f"Company with company_id {request_data.company_id} is not found.",
             )
-        request_sending = CompanyInvitesModel(
+        await self.repo.send_request(
+            session,
             company_id=request_data.company_id,
             invited_user_id=current_user.id,
-            invited_by_id=None,
-            type=InviteType.REQUEST,
-            status=InviteStatus.PENDING,
         )
-        session.add(request_sending)
-        await session.commit()
-        await session.refresh(request_sending)
 
         return {"message": f"Successfully sent request to {company.name} "}
 

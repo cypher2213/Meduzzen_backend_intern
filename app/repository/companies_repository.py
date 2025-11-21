@@ -142,3 +142,19 @@ class CompaniesRepository(AsyncBaseRepository[CompanyModel]):
         await session.commit()
         await session.refresh(invite)
         return invite
+
+    async def get_users_by_ids(self, db: AsyncSession, user_ids: list[UUID]):
+        if not user_ids:
+            return []
+        result = await db.execute(select(UserModel).where(UserModel.id.in_(user_ids)))
+        return result.scalars().all()
+
+    async def get_by_id(self, session: AsyncSession, user_id: UUID):
+        result = await session.execute(select(UserModel).where(UserModel.id == user_id))
+        return result.scalar_one_or_none()
+
+    async def get_by_id(self, session: AsyncSession, user_id: UUID):
+        return await session.get(UserModel, user_id)
+
+    async def get_company_by_id(self, session: AsyncSession, company_id: UUID):
+        return await session.get(CompanyModel, company_id)

@@ -1,11 +1,9 @@
 from uuid import UUID
 
 from fastapi import HTTPException
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.company_invites_model import InviteStatus
-from app.models.company_model import CompanyModel
 from app.models.company_user_role_model import CompanyUserRoleModel, RoleEnum
 from app.models.user_model import UserModel
 from app.repository.companies_repository import CompaniesRepository
@@ -15,6 +13,8 @@ from app.schemas.company_schema import (
     CompanyUpdate,
     InviteSentSchema,
     RequestSentSchema,
+    UsersWithRolesResponse,
+    UserWithRoleSchema,
 )
 
 
@@ -92,7 +92,7 @@ class CompaniesService:
     async def invite_send(
         self, invite_data: InviteSentSchema, user: UserModel, session: AsyncSession
     ):
-        invited_user = await session.get(UserModel, invite_data.invited_user_id)
+        invited_user = await self.repo.get_by_id(session, invite_data.invited_user_id)
 
         if not invited_user:
             raise HTTPException(
@@ -100,7 +100,7 @@ class CompaniesService:
                 detail=f"User with id {invite_data.invited_user_id} not found.",
             )
 
-        company = await session.get(CompanyModel, invite_data.company_id)
+        company = await self.repo.get_company_by_id(session, invite_data.company_id)
 
         if not company:
             raise HTTPException(
@@ -150,7 +150,6 @@ class CompaniesService:
         session: AsyncSession,
     ):
         invite = await self.repo.get_invite(session, request_id)
-        print(invite)
         if not invite:
             raise HTTPException(404, f"Request with id {request_id} does not exist!")
         if invite.status != InviteStatus.PENDING:
@@ -164,9 +163,12 @@ class CompaniesService:
             raise HTTPException(
                 403, "Only company owners can accept or decline requests"
             )
-        if option not in ("accept", "decline"):
-            raise HTTPException(400, "Option must be 'accept' or 'decline'")
-        if option == "accept":
+        if option not in (InviteStatus.ACCEPTED, InviteStatus.DECLINED):
+            raise HTTPException(
+                400,
+                f"Option must be {InviteStatus.ACCEPTED} or {InviteStatus.ACCEPTED}",
+            )
+        if option == InviteStatus.ACCEPTED:
             invite.status = InviteStatus.ACCEPTED
             user_role = CompanyUserRoleModel(
                 user_id=invite.invited_user_id,
@@ -174,14 +176,14 @@ class CompaniesService:
                 role=RoleEnum.MEMBER,
             )
             session.add(user_role)
-        elif option == "decline":
+        elif option == InviteStatus.DECLINED:
             invite.status = InviteStatus.DECLINED
 
         await self.repo.update(session, invite)
 
         return {"message": f"You have successfully {option}ed request"}
 
-    async def remove_owner_user(
+    async def remove_user_by_owner(
         self,
         user_id: UUID,
         company_data: RequestSentSchema,
@@ -225,10 +227,7 @@ class CompaniesService:
         if not invited_user_ids:
             return {"message": "No invited users", "users": []}
 
-        users_query = await session.execute(
-            select(UserModel).where(UserModel.id.in_(invited_user_ids))
-        )
-        users = users_query.scalars().all()
+        users = await self.repo.get_users_by_ids(session, invited_user_ids)
 
         return {"message": "Successfully found invited users", "users": users}
 
@@ -267,19 +266,21 @@ class CompaniesService:
             raise HTTPException(403, "You do not have access to this company")
 
         total = await self.repo.count_users(session, company_data.company_id)
+
         rows = await self.repo.get_users_with_roles(
             session, company_data.company_id, limit, offset
         )
+
         users = [
-            {
-                "id": str(user.id),
-                "email": user.email,
-                "name": user.name,
-                "age": getattr(user, "age", None),
-                "created_at": getattr(user, "created_at", None),
-                "updated_at": getattr(user, "updated_at", None),
-                "role": role.value,
-            }
+            UserWithRoleSchema(
+                id=user.id,
+                email=user.email,
+                name=user.name,
+                age=getattr(user, "age", None),
+                created_at=getattr(user, "created_at", None),
+                updated_at=getattr(user, "updated_at", None),
+                role=role,
+            )
             for user, role in rows
         ]
 

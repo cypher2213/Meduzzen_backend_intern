@@ -5,10 +5,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.company_invites_model import (
     CompanyInvitesModel,
+    InviteStatus,
     InviteType,
 )
 from app.models.company_model import CompanyModel
-from app.models.company_user_role_model import CompanyUserRoleModel
+from app.models.company_user_role_model import CompanyUserRoleModel, RoleEnum
 from app.models.user_model import UserModel
 from app.repository.base_repository import AsyncBaseRepository
 
@@ -75,3 +76,30 @@ class UserRepository(AsyncBaseRepository[UserModel]):
             select(CompanyInvitesModel).where(CompanyInvitesModel.id == invite_id)
         )
         return result.scalar_one_or_none()
+
+    async def add_user_role(
+        self, db: AsyncSession, user_id: UUID, company_id: UUID, role: RoleEnum
+    ):
+        owner_role = CompanyUserRoleModel(
+            user_id=user_id, company_id=company_id, role=role.value
+        )
+        db.add(owner_role)
+        await db.commit()
+
+    async def send_request(
+        self,
+        db: AsyncSession,
+        company_id: UUID,
+        invited_user_id: UUID,
+    ):
+        request_obj = CompanyInvitesModel(
+            company_id=company_id,
+            invited_user_id=invited_user_id,
+            invited_by_id=None,
+            type=InviteType.REQUEST,
+            status=InviteStatus.PENDING,
+        )
+        db.add(request_obj)
+        await db.commit()
+        await db.refresh(request_obj)
+        return request_obj

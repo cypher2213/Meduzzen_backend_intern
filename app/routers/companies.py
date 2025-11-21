@@ -142,6 +142,6 @@ async def owner_remove_user(
     current_user: UserModel = Depends(user_connect),
     session: AsyncSession = Depends(get_session),
 ):
-    return await companies_service.remove_owner_user(
+    return await companies_service.remove_user_by_owner(
         user_id, company_data, current_user, session
     )

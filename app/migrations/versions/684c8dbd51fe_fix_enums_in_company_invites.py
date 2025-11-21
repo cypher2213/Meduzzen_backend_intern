@@ -54,3 +54,6 @@ def downgrade() -> None:
         ),
         nullable=False,
     )
+
+    op.execute("DROP TYPE IF EXISTS invitation_type")
+    op.execute("DROP TYPE IF EXISTS invitation_status")
