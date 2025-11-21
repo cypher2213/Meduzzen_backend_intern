@@ -12,7 +12,6 @@ from app.schemas.company_schema import (
     CompanySchema,
     CompanyUpdate,
     InviteSentSchema,
-    RequestSentSchema,
     UserWithRoleSchema,
 )
 
@@ -185,21 +184,19 @@ class CompaniesService:
     async def remove_user_by_owner(
         self,
         user_id: UUID,
-        company_data: RequestSentSchema,
+        company_id: UUID,
         current_user: UserModel,
         session: AsyncSession,
     ):
         current_role = await self.repo.get_user_role(
-            session, company_data.company_id, current_user.id
+            session, company_id, current_user.id
         )
         if not current_role or current_role.role != RoleEnum.OWNER:
             raise HTTPException(
                 status_code=403, detail="Only company owner can remove users"
             )
 
-        user_role = await self.repo.get_user_role(
-            session, company_data.company_id, user_id
-        )
+        user_role = await self.repo.get_user_role(session, company_id, user_id)
         if not user_role:
             raise HTTPException(status_code=404, detail="User not found")
 
@@ -252,23 +249,21 @@ class CompaniesService:
 
     async def list_company_users(
         self,
-        company_data: RequestSentSchema,
+        company_id: UUID,
         limit: int,
         offset: int,
         current_user: UserModel,
         session: AsyncSession,
     ):
         membership = await self.repo.get_membership(
-            session, company_data.company_id, current_user.id
+            session, company_id, current_user.id
         )
         if not membership:
             raise HTTPException(403, "You do not have access to this company")
 
-        total = await self.repo.count_users(session, company_data.company_id)
+        total = await self.repo.count_users(session, company_id)
 
-        rows = await self.repo.get_users_with_roles(
-            session, company_data.company_id, limit, offset
-        )
+        rows = await self.repo.get_users_with_roles(session, company_id, limit, offset)
 
         users = [
             UserWithRoleSchema(
@@ -284,7 +279,7 @@ class CompaniesService:
         ]
 
         return {
-            "company_id": str(company_data.company_id),
+            "company_id": str(company_id),
             "total_users": total,
             "limit": limit,
             "offset": offset,
