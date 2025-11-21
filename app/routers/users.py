@@ -118,13 +118,13 @@ async def cancel_request(
     return await user_service.request_cancel(request_id, current_user, session)
 
 
-@router.delete("/me/leave")
+@router.delete("/me/leave/{company_id}")
 async def user_leave(
-    company: RequestSentSchema,
+    company_id: UUID,
     current_user: UserModel = Depends(user_connect),
     session: AsyncSession = Depends(get_session),
 ):
-    return await user_service.leave_user(company, current_user, session)
+    return await user_service.leave_user(company_id, current_user, session)
 
 
 # ========================MANAGING REQUESTS=========
