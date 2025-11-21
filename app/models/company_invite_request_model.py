@@ -29,7 +29,7 @@ class InviteStatus(str, enum.Enum):
     CANCELED = "canceled"
 
 
-class CompanyInvitesModel(Base, UUIDMixin, TimestampMixin):
+class CompanyInviteRequestModel(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "company_invites"
     company_id: Mapped[PyUUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("companies.id")

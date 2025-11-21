@@ -4,10 +4,7 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logger import logger
-from app.models.company_invites_model import (
-    InviteStatus,
-    InviteType,
-)
+from app.models.company_invite_request_model import InviteStatus, InviteType
 from app.models.company_user_role_model import RoleEnum
 from app.models.user_model import UserModel
 from app.repository.users_repository import UserRepository

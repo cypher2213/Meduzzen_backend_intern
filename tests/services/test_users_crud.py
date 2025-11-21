@@ -5,7 +5,7 @@ from uuid import uuid4
 import pytest
 from fastapi import HTTPException
 
-from app.models.company_invites_model import InviteStatus, InviteType
+from app.models.company_invite_request_model import InviteStatus, InviteType
 from app.models.company_user_role_model import RoleEnum
 from app.schemas.user_schema import SignInSchema, SignUpSchema, UserUpdateSchema
 

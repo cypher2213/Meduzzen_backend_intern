@@ -3,8 +3,8 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.company_invites_model import (
-    CompanyInvitesModel,
+from app.models.company_invite_request_model import (
+    CompanyInviteRequestModel,
     InviteStatus,
     InviteType,
 )
@@ -49,18 +49,18 @@ class UserRepository(AsyncBaseRepository[UserModel]):
 
     async def get_user_requests(self, session: AsyncSession, user_id: UUID):
         result = await session.execute(
-            select(CompanyInvitesModel).where(
-                CompanyInvitesModel.invited_user_id == user_id,
-                CompanyInvitesModel.type == InviteType.REQUEST,
+            select(CompanyInviteRequestModel).where(
+                CompanyInviteRequestModel.invited_user_id == user_id,
+                CompanyInviteRequestModel.type == InviteType.REQUEST,
             )
         )
         return result.scalars().all()
 
     async def get_user_invites(self, session: AsyncSession, user_id: UUID):
         result = await session.execute(
-            select(CompanyInvitesModel).where(
-                CompanyInvitesModel.invited_user_id == user_id,
-                CompanyInvitesModel.type == InviteType.INVITE,
+            select(CompanyInviteRequestModel).where(
+                CompanyInviteRequestModel.invited_user_id == user_id,
+                CompanyInviteRequestModel.type == InviteType.INVITE,
             )
         )
         return result.scalars().all()
@@ -73,7 +73,9 @@ class UserRepository(AsyncBaseRepository[UserModel]):
 
     async def get_invite(self, session: AsyncSession, invite_id: UUID):
         result = await session.execute(
-            select(CompanyInvitesModel).where(CompanyInvitesModel.id == invite_id)
+            select(CompanyInviteRequestModel).where(
+                CompanyInviteRequestModel.id == invite_id
+            )
         )
         return result.scalar_one_or_none()
 
@@ -92,7 +94,7 @@ class UserRepository(AsyncBaseRepository[UserModel]):
         company_id: UUID,
         invited_user_id: UUID,
     ):
-        request_obj = CompanyInvitesModel(
+        request_obj = CompanyInviteRequestModel(
             company_id=company_id,
             invited_user_id=invited_user_id,
             invited_by_id=None,

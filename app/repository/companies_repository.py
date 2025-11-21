@@ -3,8 +3,8 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.company_invites_model import (
-    CompanyInvitesModel,
+from app.models.company_invite_request_model import (
+    CompanyInviteRequestModel,
     InviteStatus,
     InviteType,
 )
@@ -52,9 +52,9 @@ class CompaniesRepository(AsyncBaseRepository[CompanyModel]):
         if not company_ids:
             return []
         result = await db.execute(
-            select(CompanyInvitesModel.invited_user_id).where(
-                CompanyInvitesModel.company_id.in_(company_ids),
-                CompanyInvitesModel.type == InviteType.INVITE,
+            select(CompanyInviteRequestModel.invited_user_id).where(
+                CompanyInviteRequestModel.company_id.in_(company_ids),
+                CompanyInviteRequestModel.type == InviteType.INVITE,
             )
         )
         return result.scalars().all()
@@ -63,10 +63,10 @@ class CompaniesRepository(AsyncBaseRepository[CompanyModel]):
         if not company_ids:
             return []
         result = await db.execute(
-            select(CompanyInvitesModel).where(
-                CompanyInvitesModel.company_id.in_(company_ids),
-                CompanyInvitesModel.status == InviteStatus.PENDING,
-                CompanyInvitesModel.type == InviteType.REQUEST,
+            select(CompanyInviteRequestModel).where(
+                CompanyInviteRequestModel.company_id.in_(company_ids),
+                CompanyInviteRequestModel.status == InviteStatus.PENDING,
+                CompanyInviteRequestModel.type == InviteType.REQUEST,
             )
         )
         return result.scalars().all()
@@ -115,11 +115,15 @@ class CompaniesRepository(AsyncBaseRepository[CompanyModel]):
 
     async def get_invite(self, session: AsyncSession, invite_id: UUID):
         result = await session.execute(
-            select(CompanyInvitesModel).where(CompanyInvitesModel.id == invite_id)
+            select(CompanyInviteRequestModel).where(
+                CompanyInviteRequestModel.id == invite_id
+            )
         )
         return result.scalar_one_or_none()
 
-    async def cancel_invite(self, session: AsyncSession, invite: CompanyInvitesModel):
+    async def cancel_invite(
+        self, session: AsyncSession, invite: CompanyInviteRequestModel
+    ):
         invite.status = InviteStatus.CANCELED
         await self.update(session, invite)
         return invite
@@ -131,7 +135,7 @@ class CompaniesRepository(AsyncBaseRepository[CompanyModel]):
         invited_user_id: UUID,
         invited_by_id: UUID,
     ):
-        invite = CompanyInvitesModel(
+        invite = CompanyInviteRequestModel(
             company_id=company_id,
             invited_user_id=invited_user_id,
             invited_by_id=invited_by_id,

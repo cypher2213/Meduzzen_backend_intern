@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.company_invites_model import InviteStatus
+from app.models.company_invite_request_model import InviteStatus
 from app.models.company_user_role_model import CompanyUserRoleModel, RoleEnum
 from app.models.user_model import UserModel
 from app.repository.companies_repository import CompaniesRepository
@@ -13,7 +13,6 @@ from app.schemas.company_schema import (
     CompanyUpdate,
     InviteSentSchema,
     RequestSentSchema,
-    UsersWithRolesResponse,
     UserWithRoleSchema,
 )
 
