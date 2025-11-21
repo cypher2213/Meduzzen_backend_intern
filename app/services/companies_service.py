@@ -1,8 +1,17 @@
 from uuid import UUID
 
-from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.base_exception import (
+    CompanyNotFoundError,
+    InvalidInviteStatusError,
+    InviteInvalidOptionError,
+    InviteNotFoundError,
+    MemberNotFoundError,
+    OwnerOnlyActionError,
+    PermissionDeniedError,
+    UserNotFoundError,
+)
 from app.models.company_invite_request_model import InviteStatus
 from app.models.company_user_role_model import CompanyUserRoleModel, RoleEnum
 from app.models.user_model import UserModel
@@ -34,10 +43,7 @@ class CompaniesService:
     async def get_company(self, company_id: UUID, session: AsyncSession):
         company = await self.repo.get(session, company_id)
         if not company:
-            raise HTTPException(
-                status_code=404,
-                detail="Company not found",
-            )
+            raise CompanyNotFoundError(company_id)
         return {"message": "Company successfully found!", "company": company}
 
     async def company_create(
@@ -62,9 +68,8 @@ class CompaniesService:
     ):
         company = await self.repo.get_owner_company(db, company_id, user.id)
         if not company:
-            raise HTTPException(
-                status_code=403,
-                detail="You are not the owner of this company or it does not exist.",
+            raise PermissionDeniedError(
+                "You are not the owner of this company or it does not exist."
             )
         for field, value in company_data.model_dump(exclude_unset=True).items():
             setattr(company, field, value)
@@ -79,9 +84,8 @@ class CompaniesService:
     async def company_delete(self, company_id: UUID, db: AsyncSession, user: UserModel):
         company = await self.repo.get_owner_company(db, company_id, user.id)
         if not company:
-            raise HTTPException(
-                status_code=403,
-                detail="You are not the owner of this company or it does not exist.",
+            raise PermissionDeniedError(
+                "You are not the owner of this company or it does not exist."
             )
         await self.repo.delete(db, company)
 
@@ -93,25 +97,17 @@ class CompaniesService:
         invited_user = await self.repo.get_by_id(session, invite_data.invited_user_id)
 
         if not invited_user:
-            raise HTTPException(
-                status_code=404,
-                detail=f"User with id {invite_data.invited_user_id} not found.",
-            )
+            raise UserNotFoundError(invite_data.invited_user_id)
 
         company = await self.repo.get_company_by_id(session, invite_data.company_id)
 
         if not company:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Company with id {invite_data.company_id} not found.",
-            )
+            raise CompanyNotFoundError(invite_data.company_id)
         membership = await self.repo.get_membership(
             session, invite_data.company_id, user.id
         )
         if not membership or membership.role != RoleEnum.OWNER:
-            raise HTTPException(
-                status_code=403, detail="Only company owners can send invitations."
-            )
+            raise OwnerOnlyActionError()
 
         invite = await self.repo.send_invite(
             session,
@@ -129,13 +125,10 @@ class CompaniesService:
     ):
         invite = await self.repo.get_invite(session, invite_id)
         if not invite:
-            raise HTTPException(
-                status_code=404, detail=f"Invitation with id {invite_id} not found."
-            )
+            raise InviteNotFoundError(invite_id)
         if invite.invited_by_id != user.id:
-            raise HTTPException(
-                status_code=403,
-                detail="You are not allowed to cancel this invitation.",
+            raise PermissionDeniedError(
+                "You are not allowed to cancel this invitation."
             )
         await self.repo.cancel_invite(session, invite)
         return {"message": "Invitation canceled successfully!"}
@@ -149,23 +142,18 @@ class CompaniesService:
     ):
         invite = await self.repo.get_invite(session, request_id)
         if not invite:
-            raise HTTPException(404, f"Request with id {request_id} does not exist!")
+            raise InviteNotFoundError(request_id)
         if invite.status != InviteStatus.PENDING:
-            raise HTTPException(400, "This request is already accepted or declined.")
+            raise InvalidInviteStatusError(invite.status)
 
         membership = await self.repo.get_membership(
             session, invite.company_id, current_user.id
         )
 
         if not membership or membership.role != RoleEnum.OWNER:
-            raise HTTPException(
-                403, "Only company owners can accept or decline requests"
-            )
+            raise OwnerOnlyActionError()
         if option not in (InviteStatus.ACCEPTED, InviteStatus.DECLINED):
-            raise HTTPException(
-                400,
-                "Option must be accepted or declined",
-            )
+            raise InviteInvalidOptionError(option)
         if option == InviteStatus.ACCEPTED:
             invite.status = InviteStatus.ACCEPTED
             user_role = CompanyUserRoleModel(
@@ -192,18 +180,14 @@ class CompaniesService:
             session, company_id, current_user.id
         )
         if not current_role or current_role.role != RoleEnum.OWNER:
-            raise HTTPException(
-                status_code=403, detail="Only company owner can remove users"
-            )
+            raise OwnerOnlyActionError()
 
         user_role = await self.repo.get_user_role(session, company_id, user_id)
         if not user_role:
-            raise HTTPException(status_code=404, detail="User not found")
+            raise MemberNotFoundError(user_id)
 
         if user_role.role != RoleEnum.MEMBER:
-            raise HTTPException(
-                status_code=400, detail="You can delete only member users"
-            )
+            raise InvalidInviteStatusError("Owner cannot be removed")
 
         await self.repo.delete_user_role(session, user_role)
 
@@ -215,7 +199,7 @@ class CompaniesService:
             session, current_user.id
         )
         if not owner_company_ids:
-            raise HTTPException(403, "You are not an owner of any company")
+            raise OwnerOnlyActionError()
 
         invited_user_ids = await self.repo.get_invited_user_ids(
             session, owner_company_ids
@@ -234,7 +218,7 @@ class CompaniesService:
             session, current_user.id
         )
         if not owner_company_ids:
-            raise HTTPException(403, "You are not an owner of any company")
+            raise OwnerOnlyActionError()
 
         pending_requests = await self.repo.get_pending_requests(
             session, owner_company_ids
@@ -259,7 +243,7 @@ class CompaniesService:
             session, company_id, current_user.id
         )
         if not membership:
-            raise HTTPException(403, "You do not have access to this company")
+            raise PermissionDeniedError("You do not have access to this company")
 
         total = await self.repo.count_users(session, company_id)
 

@@ -3,6 +3,23 @@ from uuid import UUID
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.base_exception import (
+    CompanyNotFoundError,
+    EmailChangeForbiddenError,
+    InvalidCredentialsError,
+    InvalidRefreshTokenError,
+    InviteAlreadyProcessedError,
+    InviteInvalidOptionError,
+    InviteNotFoundError,
+    InvitePermissionDeniedError,
+    NotCompanyMemberError,
+    OwnerCannotLeaveError,
+    RequestAlreadyCanceledError,
+    RequestNotFoundError,
+    RequestPermissionDeniedError,
+    RequestWrongTypeError,
+    UserNotFoundError,
+)
 from app.core.logger import logger
 from app.models.company_invite_request_model import InviteStatus, InviteType
 from app.models.company_user_role_model import RoleEnum
@@ -46,14 +63,14 @@ class UserService:
         user = await self.repo.get(session, current_user.id)
         if not user:
             logger.warning(f"Attempted delete — user not found: id={current_user.id}")
-            raise HTTPException(status_code=404, detail="User not found")
+            raise UserNotFoundError(current_user.id)
         await self.repo.delete(session, user)
         logger.info(f"User deleted: id={current_user.id}, name={user.name}")
 
     async def get_user_by_id(self, session: AsyncSession, user_id: UUID):
         user = await self.repo.get(session, user_id)
         if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+            raise UserNotFoundError(user_id)
         return {"message": "User Found", "user": user}
 
     async def update_user(
@@ -64,10 +81,10 @@ class UserService:
     ):
         user = await self.repo.get(session, current_user.id)
         if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+            raise UserNotFoundError(current_user.id)
         filtered_data = updated_user.model_dump(exclude_none=True)
         if "email" in filtered_data:
-            raise HTTPException(status_code=400, detail="Email cannot be changed")
+            raise EmailChangeForbiddenError()
         if "password" in filtered_data:
             filtered_data["password"] = password_hash(filtered_data["password"])
 
@@ -87,9 +104,9 @@ class UserService:
         password = user_data.get("password")
         user = await self.repo.get_by_email(session, email)
         if not user:
-            raise HTTPException(status_code=401, detail="Invalid credentials")
+            raise InvalidCredentialsError()
         if not verify_password(password, user.password):
-            raise HTTPException(status_code=401, detail="Invalid credentials")
+            raise InvalidCredentialsError()
         access_token = create_access_token({"sub": user.email})
         refresh_token = create_refresh_token({"sub": user.email})
         return {
@@ -104,9 +121,7 @@ class UserService:
             payload = decode_token(refresh_token, expected_type="refresh")
             user_email = payload.get("sub")
             if not user_email:
-                raise HTTPException(
-                    status_code=401, detail="Invalid refresh token payload"
-                )
+                raise InvalidRefreshTokenError()
 
             new_access = create_access_token({"sub": user_email})
             return {"access_token": new_access, "token_type": "bearer"}
@@ -127,21 +142,14 @@ class UserService:
     ):
         invite = await self.repo.get_invite(session, invite_id)
         if not invite:
-            raise HTTPException(
-                status_code=404, detail=f"Invite with id {invite_id} does not exist!"
-            )
+            raise InviteNotFoundError()
         if invite.status != InviteStatus.PENDING:
-            raise HTTPException(
-                status_code=400, detail="This invite is already accepted or declined."
-            )
+            raise InviteAlreadyProcessedError()
         if current_user.id != invite.invited_user_id:
-            raise HTTPException(
-                status_code=403,
-                detail="You do not have rights to modify this invitation",
-            )
+            raise InvitePermissionDeniedError()
 
         if option not in (InviteStatus.ACCEPTED, InviteStatus.DECLINED):
-            raise HTTPException(400, "Option must be accepted or declined")
+            raise InviteInvalidOptionError()
         elif option == InviteStatus.ACCEPTED:
             invite.status = InviteStatus.ACCEPTED
             await self.repo.add_user_role(
@@ -165,10 +173,7 @@ class UserService:
     ):
         company = await self.repo.get_company(session, request_data.company_id)
         if not company:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Company with company_id {request_data.company_id} is not found.",
-            )
+            raise CompanyNotFoundError(request_data.company_id)
         await self.repo.send_request(
             session,
             company_id=request_data.company_id,
@@ -182,19 +187,13 @@ class UserService:
     ):
         request = await self.repo.get_invite(session, request_id)
         if not request:
-            raise HTTPException(
-                status_code=404, detail=f"Request with id {request_id} is not found!"
-            )
+            raise RequestNotFoundError(request_id)
         if request.type != InviteType.REQUEST:
-            raise HTTPException(status_code=400, detail="You can cancel only requests")
+            raise RequestWrongTypeError()
         if request.status != InviteStatus.PENDING:
-            raise HTTPException(
-                status_code=400, detail="This request has been already canceled"
-            )
+            raise RequestAlreadyCanceledError()
         if request.invited_user_id != current_user.id:
-            raise HTTPException(
-                status_code=403, detail="You can cancel only your requests"
-            )
+            raise RequestPermissionDeniedError()
         request.status = InviteStatus.CANCELED
         await session.commit()
         return {"message": "Your invitation was successfully canceled"}
@@ -207,19 +206,13 @@ class UserService:
     ):
         user_role = await self.repo.get_user_role(session, company_id, current_user.id)
         if not user_role:
-            raise HTTPException(
-                status_code=404, detail="You are not a member of this company"
-            )
+            raise NotCompanyMemberError()
         if user_role.role == RoleEnum.OWNER:
             owners = await self.repo.get_users_with_roles(
                 session, company_id, limit=1000, offset=0
             )
             if len(owners) == 1:
-                raise HTTPException(
-                    status_code=400,
-                    detail="You cannot leave the company as the only owner. "
-                    "Transfer ownership first.",
-                )
+                raise OwnerCannotLeaveError()
         await self.repo.delete_user_role(session, user_role)
         return {"message": "You have successfully left the company."}
 
