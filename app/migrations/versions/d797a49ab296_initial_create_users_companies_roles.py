@@ -66,5 +66,6 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_table("company_user_roles")
     op.drop_table("companies")
+    op.execute("DROP TYPE IF EXISTS role_enum")
 
     # ### end Alembic commands ###

@@ -68,3 +68,5 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_table("company_invites")
+    op.execute("DROP TYPE IF EXISTS invitation_type")
+    op.execute("DROP TYPE IF EXISTS invitation_status")
