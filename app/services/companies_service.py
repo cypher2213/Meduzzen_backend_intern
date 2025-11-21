@@ -165,7 +165,7 @@ class CompaniesService:
         if option not in (InviteStatus.ACCEPTED, InviteStatus.DECLINED):
             raise HTTPException(
                 400,
-                f"Option must be {InviteStatus.ACCEPTED} or {InviteStatus.ACCEPTED}",
+                "Option must be accepted or declined",
             )
         if option == InviteStatus.ACCEPTED:
             invite.status = InviteStatus.ACCEPTED
@@ -180,7 +180,7 @@ class CompaniesService:
 
         await self.repo.update(session, invite)
 
-        return {"message": f"You have successfully {option}ed request"}
+        return {"message": f"You have successfully {option} request"}
 
     async def remove_user_by_owner(
         self,
