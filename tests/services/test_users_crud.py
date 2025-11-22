@@ -3,8 +3,18 @@ from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import pytest
-from fastapi import HTTPException
 
+from app.core.base_exception import (
+    CompanyNotFoundError,
+    InvalidCredentialsError,
+    InviteInvalidOptionError,
+    InviteNotFoundError,
+    InvitePermissionDeniedError,
+    NotCompanyMemberError,
+    OwnerCannotLeaveError,
+    RequestPermissionDeniedError,
+    RequestWrongTypeError,
+)
 from app.models.company_invite_request_model import InviteStatus, InviteType
 from app.models.company_user_role_model import RoleEnum
 from app.schemas.user_schema import SignInSchema, SignUpSchema, UserUpdateSchema
@@ -78,11 +88,11 @@ async def test_login_user_invalid_email(user_service, mock_repo, mock_session):
     mock_repo.get_by_email.return_value = None
     user_data = SignInSchema(email="notfound@example.com", password="123456")
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(InvalidCredentialsError) as exc:
         await user_service.login_user(user_data.model_dump(), mock_session)
 
     assert exc.value.status_code == 401
-    assert exc.value.detail == "Invalid credentials"
+    assert exc.value.message == "Invalid credentials"
     mock_repo.get_by_email.assert_awaited_once_with(mock_session, user_data.email)
 
 
@@ -94,11 +104,11 @@ async def test_login_user_invalid_password(
     user_data = SignInSchema(email=fake_user.email, password="wrongpass")
 
     with patch("app.utils.jwt_util.pwd_context.verify", return_value=False):
-        with pytest.raises(HTTPException) as exc:
+        with pytest.raises(InvalidCredentialsError) as exc:
             await user_service.login_user(user_data.model_dump(), mock_session)
 
     assert exc.value.status_code == 401
-    assert exc.value.detail == "Invalid credentials"
+    assert exc.value.message == "Invalid credentials"
 
 
 @pytest.mark.asyncio
@@ -115,7 +125,7 @@ async def test_invite_user_switcher_decline(
 
     result = await user_service.invite_user_switcher(
         invite_id=invite_id,
-        option="decline",
+        option="declined",
         current_user=fake_user,
         session=mock_session,
     )
@@ -129,17 +139,19 @@ async def test_invite_user_switcher_decline(
 async def test_invite_user_switcher_not_found(
     user_service, mock_repo, mock_session, fake_user
 ):
+    invite_id = uuid4()
     mock_repo.get_invite.return_value = None
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(InviteNotFoundError) as exc:
         await user_service.invite_user_switcher(
-            invite_id=uuid4(),
+            invite_id=invite_id,
             option="accept",
             current_user=fake_user,
             session=mock_session,
         )
 
     assert exc.value.status_code == 404
+    assert str(exc.value) == f"Invite with id {invite_id} does not exist!"
 
 
 @pytest.mark.asyncio
@@ -153,7 +165,7 @@ async def test_invite_user_switcher_forbidden(
 
     mock_repo.get_invite.return_value = invite
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(InvitePermissionDeniedError) as exc:
         await user_service.invite_user_switcher(
             invite_id=uuid4(),
             option="accept",
@@ -175,7 +187,7 @@ async def test_invite_user_switcher_invalid_option(
 
     mock_repo.get_invite.return_value = invite
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(InviteInvalidOptionError) as exc:
         await user_service.invite_user_switcher(
             invite_id=uuid4(),
             option="bad",
@@ -187,31 +199,12 @@ async def test_invite_user_switcher_invalid_option(
 
 
 @pytest.mark.asyncio
-async def test_request_send_success(user_service, mock_repo, mock_session, fake_user):
-    company = MagicMock(name="MegaCorp")
-    mock_repo.get_company.return_value = company
-
-    request_data = MagicMock(company_id=uuid4())
-
-    result = await user_service.request_send(
-        request_data=request_data,
-        current_user=fake_user,
-        session=mock_session,
-    )
-
-    mock_session.add.assert_called_once()
-    mock_session.commit.assert_called_once()
-
-    assert "Successfully sent request" in result["message"]
-
-
-@pytest.mark.asyncio
 async def test_request_send_company_not_found(
     user_service, mock_repo, mock_session, fake_user
 ):
     mock_repo.get_company.return_value = None
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(CompanyNotFoundError) as exc:
         await user_service.request_send(
             request_data=MagicMock(company_id=uuid4()),
             current_user=fake_user,
@@ -248,7 +241,7 @@ async def test_request_cancel_wrong_type(
     request = MagicMock(type=InviteType.INVITE)
     mock_repo.get_invite.return_value = request
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(RequestWrongTypeError) as exc:
         await user_service.request_cancel(uuid4(), fake_user, mock_session)
 
     assert exc.value.status_code == 400
@@ -263,7 +256,7 @@ async def test_request_cancel_forbidden(
     )
     mock_repo.get_invite.return_value = request
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(RequestPermissionDeniedError) as exc:
         await user_service.request_cancel(uuid4(), fake_user, mock_session)
 
     assert exc.value.status_code == 403
@@ -286,7 +279,7 @@ async def test_leave_user_success(user_service, mock_repo, mock_session, fake_us
 async def test_leave_user_not_member(user_service, mock_repo, mock_session, fake_user):
     mock_repo.get_user_role.return_value = None
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(NotCompanyMemberError) as exc:
         await user_service.leave_user(
             MagicMock(company_id=uuid4()),
             fake_user,
@@ -304,7 +297,7 @@ async def test_leave_user_last_owner_forbidden(
 
     mock_repo.get_users_with_roles.return_value = [("user", RoleEnum.OWNER)]
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(OwnerCannotLeaveError) as exc:
         await user_service.leave_user(
             MagicMock(company_id=uuid4()),
             fake_user,

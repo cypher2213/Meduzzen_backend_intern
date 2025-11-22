@@ -2,9 +2,15 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
-from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.base_exception import (
+    CompanyNotFoundError,
+    InvalidInviteStatusError,
+    InviteInvalidOptionError,
+    OwnerOnlyActionError,
+    PermissionDeniedError,
+)
 from app.models.company_invite_request_model import InviteStatus
 from app.models.company_model import CompanyModel
 from app.models.company_user_role_model import CompanyUserRoleModel, RoleEnum
@@ -66,13 +72,14 @@ async def test_get_company_found(service, repo_mock, async_session_mock):
 
 @pytest.mark.asyncio
 async def test_get_company_not_found(service, repo_mock, async_session_mock):
+    company_id = uuid4()
     repo_mock.get.return_value = None
 
-    with pytest.raises(HTTPException) as exc:
-        await service.get_company(uuid4(), async_session_mock)
+    with pytest.raises(CompanyNotFoundError) as exc:
+        await service.get_company(company_id, async_session_mock)
 
     assert exc.value.status_code == 404
-    assert exc.value.detail == "Company not found"
+    assert exc.value.message == f"Company with id {company_id} is not found."
 
 
 @pytest.mark.asyncio
@@ -124,12 +131,12 @@ async def test_company_update_forbidden(
 ):
     repo_mock.get_owner_company.return_value = None
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(PermissionDeniedError) as exc:
         await service.company_update(
             uuid4(), CompanyUpdate(name="x"), async_session_mock, user_mock
         )
     assert exc.value.status_code == 403
-    assert "owner" in exc.value.detail
+    assert "owner" in exc.value.message
 
 
 @pytest.mark.asyncio
@@ -151,11 +158,11 @@ async def test_company_delete_forbidden(
 ):
     repo_mock.get_owner_company.return_value = None
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(PermissionDeniedError) as exc:
         await service.company_delete(uuid4(), async_session_mock, user_mock)
 
     assert exc.value.status_code == 403
-    assert "owner" in exc.value.detail
+    assert "owner" in exc.value.message
 
 
 @pytest.mark.asyncio
@@ -193,7 +200,7 @@ async def test_invite_send_forbidden(service, mock_repo, mock_session, fake_user
 
     service.repo = mock_repo
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(OwnerOnlyActionError) as exc:
         await service.invite_send(
             MagicMock(invited_user_id=invited_user.id, company_id=company.id),
             fake_user,
@@ -223,7 +230,7 @@ async def test_invite_cancel_forbidden(service, mock_repo):
 
     service.repo = mock_repo
 
-    with pytest.raises(HTTPException):
+    with pytest.raises(PermissionDeniedError):
         await service.invite_cancel(uuid4(), UserModel(id=uuid4()), MagicMock())
 
 
@@ -239,7 +246,7 @@ async def test_request_owner_switcher_invalid_option(
 
     service.repo = mock_repo
 
-    with pytest.raises(HTTPException):
+    with pytest.raises(InviteInvalidOptionError):
         await service.request_owner_switcher(uuid4(), "NOPE", fake_user, mock_session)
 
 
@@ -256,9 +263,9 @@ async def test_remove_owner_user_success(service, mock_repo, mock_session, fake_
 
     service.repo = mock_repo
 
-    result = await service.remove_owner_user(
+    result = await service.remove_user_by_owner(
         user_id=member_role.user_id,
-        company_data=MagicMock(company_id=owner_role.company_id),
+        company_id=owner_role.company_id,
         current_user=fake_user,
         session=mock_session,
     )
@@ -280,8 +287,8 @@ async def test_remove_owner_user_bad_role(service, mock_repo, mock_session, fake
 
     service.repo = mock_repo
 
-    with pytest.raises(HTTPException):
-        await service.remove_owner_user(
+    with pytest.raises(InvalidInviteStatusError):
+        await service.remove_user_by_owner(
             uuid4(),
             MagicMock(company_id=owner_role.company_id),
             fake_user,
@@ -295,7 +302,7 @@ async def test_invite_owner_list_forbidden(service, mock_repo, fake_user):
 
     service.repo = mock_repo
 
-    with pytest.raises(HTTPException):
+    with pytest.raises(OwnerOnlyActionError):
         await service.invite_owner_list(fake_user, MagicMock())
 
 
@@ -317,7 +324,7 @@ async def test_pending_requests_list_forbidden(service, mock_repo, fake_user):
 
     service.repo = mock_repo
 
-    with pytest.raises(HTTPException):
+    with pytest.raises(OwnerOnlyActionError):
         await service.pending_requests_list(fake_user, MagicMock())
 
 
