@@ -153,7 +153,7 @@ class CompaniesService:
         if not membership or membership.role != RoleEnum.OWNER:
             raise OwnerOnlyActionError()
         if option not in (InviteStatus.ACCEPTED, InviteStatus.DECLINED):
-            raise InviteInvalidOptionError(option)
+            raise InviteInvalidOptionError()
         if option == InviteStatus.ACCEPTED:
             invite.status = InviteStatus.ACCEPTED
             user_role = CompanyUserRoleModel(

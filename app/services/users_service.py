@@ -142,7 +142,7 @@ class UserService:
     ):
         invite = await self.repo.get_invite(session, invite_id)
         if not invite:
-            raise InviteNotFoundError()
+            raise InviteNotFoundError(invite_id)
         if invite.status != InviteStatus.PENDING:
             raise InviteAlreadyProcessedError()
         if current_user.id != invite.invited_user_id:
