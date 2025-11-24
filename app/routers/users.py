@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_session
 from app.models.user_model import UserModel
+from app.schemas.company_schema import RequestSentSchema
 from app.schemas.user_schema import (
     LoginResponseSchema,
     RefreshResponseSchema,
@@ -82,3 +83,64 @@ async def user_login(user: SignInSchema, session: AsyncSession = Depends(get_ses
 @router.post("/refresh", response_model=RefreshResponseSchema)
 async def user_refresh_token(refresh_token: str):
     return await user_service.refresh_access_token(refresh_token)
+
+
+# ======================INVITES AND REQUESTS=================
+
+
+@router.post("/me/{option}/{invite_id}")
+async def user_invite_switcher(
+    invite_id: UUID,
+    option: str,
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await user_service.invite_user_switcher(
+        invite_id, option, current_user, session
+    )
+
+
+@router.post("/me/request")
+async def send_request(
+    request: RequestSentSchema,
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await user_service.request_send(request, current_user, session)
+
+
+@router.patch("/me/request/{request_id}")
+async def cancel_request(
+    request_id: UUID,
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await user_service.request_cancel(request_id, current_user, session)
+
+
+@router.delete("/me/leave/{company_id}")
+async def user_leave(
+    company_id: UUID,
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await user_service.leave_user(company_id, current_user, session)
+
+
+# ========================MANAGING REQUESTS=========
+
+
+@router.get("/me/requests")
+async def user_show_requests(
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await user_service.show_user_requests(current_user, session)
+
+
+@router.get("/me/invites")
+async def user_show_invites(
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await user_service.show_user_invites(current_user, session)

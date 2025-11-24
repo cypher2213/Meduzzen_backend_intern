@@ -6,7 +6,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_session
 from app.models.user_model import UserModel
-from app.schemas.company_schema import CompanyCreate, CompanySchema, CompanyUpdate
+from app.schemas.company_schema import (
+    CompanyCreate,
+    CompanySchema,
+    CompanyUpdate,
+    InviteSentSchema,
+)
 from app.services.companies_service import companies_service
 from app.utils.user_util import user_connect
 
@@ -21,6 +26,43 @@ async def show_all_companies(
     return companies
 
 
+# =========================MANAGING INVITES AND REQUESTS=========
+
+
+@router.get("/invites")
+async def owner_list_invite(
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await companies_service.invite_owner_list(current_user, session)
+
+
+@router.get("/requests/pending")
+async def owner_pending_requests(
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await companies_service.pending_requests_list(current_user, session)
+
+
+@router.get("/{company_id}/users")
+async def get_company_users(
+    company_id: UUID,
+    limit: int = 20,
+    offset: int = 0,
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await companies_service.list_company_users(
+        company_id=company_id,
+        limit=limit,
+        offset=offset,
+        current_user=current_user,
+        session=session,
+    )
+
+
+# ==================================MANAGIN COMPANIES==============
 @router.get("/{company_id}")
 async def show_company(company_id: UUID, session: AsyncSession = Depends(get_session)):
     return await companies_service.get_company(company_id, session)
@@ -54,3 +96,51 @@ async def delete_company(
     current_user: UserModel = Depends(user_connect),
 ):
     return await companies_service.company_delete(company_id, session, current_user)
+
+
+# ===============================INVITES=======================================
+
+
+@router.post("/invite")
+async def send_invite(
+    invite: InviteSentSchema,
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await companies_service.invite_send(invite, current_user, session)
+
+
+@router.patch("/invite/{invite_id}")
+async def cancel_invite(
+    invite_id: UUID,
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await companies_service.invite_cancel(invite_id, current_user, session)
+
+
+# ===============================REQUESTS=======================================
+
+
+@router.post("/request/{option}/{request_id}")
+async def owner_request_switcher(
+    request_id: UUID,
+    option: str,
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await companies_service.request_owner_switcher(
+        request_id, option, current_user, session
+    )
+
+
+@router.delete("/remove/{company_id}/{user_id}")
+async def owner_remove_user(
+    user_id: UUID,
+    company_id: UUID,
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await companies_service.remove_user_by_owner(
+        user_id, company_id, current_user, session
+    )

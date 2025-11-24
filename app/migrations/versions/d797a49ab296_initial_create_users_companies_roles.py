@@ -55,12 +55,17 @@ def upgrade() -> None:
         sa.Column(
             "company_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("companies.id")
         ),
-        sa.Column("role", sa.String(), nullable=False, default="member"),
+        sa.Column(
+            "role",
+            postgresql.ENUM("member", "admin", "owner", name="role_enum"),
+            nullable=False,
+        ),
     )
 
 
 def downgrade() -> None:
     op.drop_table("company_user_roles")
     op.drop_table("companies")
+    op.execute("DROP TYPE IF EXISTS role_enum")
 
     # ### end Alembic commands ###

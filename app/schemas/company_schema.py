@@ -1,7 +1,10 @@
+from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel
+
+from app.models.company_user_role_model import RoleEnum
 
 
 class CompanySchema(BaseModel):
@@ -34,3 +37,26 @@ class CompanyUpdate(BaseModel):
 
 class CompanyListSchema(BaseModel):
     List[CompanySchema]
+
+
+class InviteSentSchema(BaseModel):
+    company_id: UUID
+    invited_user_id: UUID
+
+
+class RequestSentSchema(BaseModel):
+    company_id: UUID
+
+
+class UserWithRoleSchema(BaseModel):
+    id: UUID
+    email: str
+    name: str
+    age: int | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    role: RoleEnum
+
+
+class UsersWithRolesResponse(BaseModel):
+    users: List[UserWithRoleSchema]
