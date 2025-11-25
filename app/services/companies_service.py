@@ -298,11 +298,13 @@ class CompaniesService:
         company = await self.repo.get_company_by_id(session, company_id)
         if not company:
             raise CompanyNotFoundError(company_id)
+
         owner_company_ids = await self.repo.get_owner_company_ids(
             session, current_user.id
         )
         if company_id not in owner_company_ids:
             raise OwnerOnlyActionError()
+
         user_role = await self.repo.get_user_role(session, company_id, user_id)
         if not user_role:
             raise MemberNotFoundError(user_id)
@@ -311,9 +313,8 @@ class CompaniesService:
         if user_role.role == RoleEnum.OWNER:
             raise UserAlreadyOwnerException()
         user_role.role = RoleEnum.ADMIN
-        session.add(user_role)
-        await session.commit()
-        await session.refresh(user_role)
+
+        await self.repo.update(session, user_role)
         return {"message": f"User with id {user_id} successfully became an admin"}
 
     async def admin_role_remove(
@@ -326,20 +327,21 @@ class CompaniesService:
         company = await self.repo.get_company_by_id(session, company_id)
         if not company:
             raise CompanyNotFoundError(company_id)
+
         owner_company_ids = await self.repo.get_owner_company_ids(
             session, current_user.id
         )
         if company_id not in owner_company_ids:
             raise OwnerOnlyActionError()
+
         user_role = await self.repo.get_user_role(session, company_id, user_id)
         if not user_role:
             raise MemberNotFoundError(user_id)
         if user_role.role != RoleEnum.ADMIN:
             raise InvalidInviteStatusError("User is not admin")
         user_role.role = RoleEnum.MEMBER
-        session.add(user_role)
-        await session.commit()
-        await session.refresh(user_role)
+
+        await self.repo.update(session, user_role)
         return {"message": f"User with id {user_id} is not admin anymore"}
 
 
