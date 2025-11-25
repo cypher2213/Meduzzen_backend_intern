@@ -8,6 +8,7 @@ from app.core.base_exception import (
     CompanyNotFoundError,
     InvalidInviteStatusError,
     InviteInvalidOptionError,
+    MemberNotFoundError,
     OwnerOnlyActionError,
     PermissionDeniedError,
 )
@@ -351,3 +352,70 @@ async def test_list_company_users_success(service, mock_repo, mock_session, fake
 
     assert result["total_users"] == 1
     assert len(result["users"]) == 1
+
+
+# ===================ADMIN ROLE TESTS==================
+@pytest.mark.asyncio
+async def test_admin_list_company_not_found(
+    service, mock_repo, mock_session, fake_user
+):
+    service.repo = mock_repo
+    mock_repo.get_company_by_id.return_value = None
+
+    with pytest.raises(CompanyNotFoundError):
+        await service.admin_list(uuid4(), fake_user, mock_session)
+
+
+@pytest.mark.asyncio
+async def test_admin_remove_not_owner(service, mock_repo, mock_session, fake_user):
+    service.repo = mock_repo
+    mock_repo.get_company_by_id.return_value = {"id": 1}
+    mock_repo.get_owner_company_ids.return_value = []
+
+    with pytest.raises(OwnerOnlyActionError):
+        await service.admin_role_remove(uuid4(), uuid4(), fake_user, mock_session)
+
+
+@pytest.mark.asyncio
+async def test_admin_remove_member_not_found(
+    service, mock_repo, mock_session, fake_user
+):
+    service.repo = mock_repo
+    company_id = uuid4()
+    mock_repo.get_company_by_id.return_value = {"id": 1}
+    mock_repo.get_owner_company_ids.return_value = [company_id]
+    mock_repo.get_user_role.return_value = None
+
+    with pytest.raises(MemberNotFoundError):
+        await service.admin_role_remove(uuid4(), company_id, fake_user, mock_session)
+
+
+@pytest.mark.asyncio
+async def test_admin_remove_user_not_admin(service, mock_repo, mock_session, fake_user):
+    role = AsyncMock()
+    role.role = RoleEnum.MEMBER
+    company_id = uuid4()
+    service.repo = mock_repo
+    mock_repo.get_company_by_id.return_value = {"id": 1}
+    mock_repo.get_owner_company_ids.return_value = [company_id]
+    mock_repo.get_user_role.return_value = role
+
+    with pytest.raises(InvalidInviteStatusError):
+        await service.admin_role_remove(uuid4(), company_id, fake_user, mock_session)
+
+
+@pytest.mark.asyncio
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
+async def test_admin_remove_success(service, mock_repo, mock_session, fake_user):
+    role = AsyncMock()
+    role.role = RoleEnum.ADMIN
+    company_id = uuid4()
+    service.repo = mock_repo
+    mock_repo.get_company_by_id.return_value = {"id": 1}
+    mock_repo.get_owner_company_ids.return_value = [company_id]
+    mock_repo.get_user_role.return_value = role
+
+    res = await service.admin_role_remove(uuid4(), company_id, fake_user, mock_session)
+
+    assert res["message"]
+    assert role.role == RoleEnum.MEMBER

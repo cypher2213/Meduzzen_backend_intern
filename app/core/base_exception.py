@@ -133,3 +133,15 @@ class MemberNotFoundError(BaseServiceError):
             f"User with id {user_id} is not a member of the company.", status_code=404
         )
         self.user_id = user_id
+
+
+class UserAlreadyAdminException(BaseServiceError):
+    def __init__(self):
+        super().__init__("This user is already admin", status_code=400)
+
+
+class UserAlreadyOwnerException(BaseServiceError):
+    def __init__(self):
+        super().__init__(
+            "This user is owner and cannot become an admin", status_code=400
+        )

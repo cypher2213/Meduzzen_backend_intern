@@ -144,3 +144,37 @@ async def owner_remove_user(
     return await companies_service.remove_user_by_owner(
         user_id, company_id, current_user, session
     )
+
+
+# ==================================ADMIN ROLE==============================================
+
+
+@router.get("/admins/{company_id}")
+async def list_admin(
+    company_id: UUID,
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await companies_service.admin_list(company_id, current_user, session)
+
+
+@router.post("/admin/add/{company_id}/{user_id}")
+async def add_admin(
+    user_id: UUID,
+    company_id: UUID,
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await companies_service.admin_add(user_id, company_id, current_user, session)
+
+
+@router.post("/admin/remove/{company_id}/{user_id}")
+async def remove_admin_role(
+    user_id: UUID,
+    company_id: UUID,
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await companies_service.admin_role_remove(
+        user_id, company_id, current_user, session
+    )

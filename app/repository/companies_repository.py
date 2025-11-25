@@ -162,3 +162,15 @@ class CompaniesRepository(AsyncBaseRepository[CompanyModel]):
 
     async def get_company_by_id(self, session: AsyncSession, company_id: UUID):
         return await session.get(CompanyModel, company_id)
+
+    async def get_company_admins(self, session, company_id):
+        admins = (
+            select(UserModel)
+            .join(CompanyUserRoleModel, CompanyUserRoleModel.user_id == UserModel.id)
+            .where(
+                CompanyUserRoleModel.company_id == company_id,
+                CompanyUserRoleModel.role == RoleEnum.ADMIN,
+            )
+        )
+        result = await session.execute(admins)
+        return result.scalars().all()
