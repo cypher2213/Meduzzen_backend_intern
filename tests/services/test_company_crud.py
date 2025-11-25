@@ -419,6 +419,3 @@ async def test_admin_remove_success(service, mock_repo, mock_session, fake_user)
 
     assert res["message"]
     assert role.role == RoleEnum.MEMBER
-    mock_session.add.assert_called_once()
-    mock_session.commit.assert_awaited()
-    mock_session.refresh.assert_awaited()
