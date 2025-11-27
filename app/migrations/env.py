@@ -5,6 +5,9 @@ from sqlalchemy import engine_from_config, pool
 
 from app.core.config import settings
 from app.models.base import Base
+from app.models.company_model import CompanyModel  # noqa
+from app.models.question_model import QuestionModel  # noqa
+from app.models.quiz_model import QuizModel  # noqa
 
 config = context.config
 
