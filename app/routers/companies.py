@@ -249,3 +249,15 @@ async def edit_quiz_question(
     return await companies_service.quiz_edit_question(
         company_id, quiz_id, question_id, question_data, current_user, session
     )
+
+
+@router.get("/quizzes/{company_id}")
+async def company_all_quizzes(
+    company_id: UUID,
+    limit: int = 10,
+    offset: int = 0,
+    session: AsyncSession = Depends(get_session),
+):
+    return await companies_service.company_all_quizzes(
+        company_id=company_id, session=session, limit=limit, offset=offset
+    )
