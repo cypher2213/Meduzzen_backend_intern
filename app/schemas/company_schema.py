@@ -83,3 +83,20 @@ class QuestionUpdate(BaseModel):
     title: Optional[str] = None
     options: Optional[List[str]] = None
     correct_answers: Optional[List[int]] = None
+
+
+class QuestionList(BaseModel):
+    id: UUID
+    title: str
+    options: List[str]
+
+    model_config = {"from_attributes": True}
+
+
+class QuizzesList(BaseModel):
+    id: UUID
+    title: str
+    description: str
+    questions: List[QuestionList]
+
+    model_config = {"from_attributes": True}
