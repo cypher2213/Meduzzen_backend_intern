@@ -2,6 +2,7 @@ from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.company_invite_request_model import (
     CompanyInviteRequestModel,
@@ -199,3 +200,15 @@ class CompaniesRepository(AsyncBaseRepository[CompanyModel]):
         )
         result = await session.execute(stmt)
         return result.scalar_one_or_none()
+
+    async def get_all_quizzes(
+        self, company_id: UUID, session: AsyncSession, limit: int = 10, offset: int = 0
+    ):
+        result = await session.execute(
+            select(QuizModel)
+            .options(selectinload(QuizModel.questions))
+            .where(QuizModel.company_id == company_id)
+            .offset(offset)
+            .limit(limit)
+        )
+        return result.scalars().all()
