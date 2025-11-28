@@ -158,7 +158,7 @@ class NotEnoughOptionsException(BaseServiceError):
         super().__init__("Question must include at least 2 options", status_code=400)
 
 
-class QuestionNotFoundException(BaseException):
+class QuestionNotFoundException(BaseServiceError):
     def __init__(self):
         super().__init__(
             "This question is not from your company or it does not exist",
