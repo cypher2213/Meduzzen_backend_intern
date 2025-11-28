@@ -18,6 +18,7 @@ from app.core.base_exception import (
     UserAlreadyAdminException,
     UserAlreadyOwnerException,
     UserNotFoundError,
+    FewOptionsException
 )
 from app.models.company_invite_request_model import InviteStatus
 from app.models.company_user_role_model import CompanyUserRoleModel, RoleEnum
@@ -393,6 +394,11 @@ class CompaniesService:
                 quiz_id=quiz.id,
             )
             session.add(question)
+            
+        for q in quiz_data.questions:
+            if len(q.options) < 2:
+                raise FewOptionsException()
+
 
         await session.commit()
         await session.refresh(quiz)
