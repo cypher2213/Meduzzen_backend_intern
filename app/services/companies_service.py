@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.base_exception import (
     CompanyNotFoundError,
+    FewOptionsException,
     FewQuestionsException,
     InvalidInviteStatusError,
     InviteInvalidOptionError,
@@ -18,7 +19,6 @@ from app.core.base_exception import (
     UserAlreadyAdminException,
     UserAlreadyOwnerException,
     UserNotFoundError,
-    FewOptionsException
 )
 from app.models.company_invite_request_model import InviteStatus
 from app.models.company_user_role_model import CompanyUserRoleModel, RoleEnum
@@ -375,33 +375,23 @@ class CompaniesService:
         if company_id not in owner_admin_company_ids:
             raise OwnerAndAdminOnlyActionError()
 
-        quiz = QuizModel(
-            title=quiz_data.title,
-            description=quiz_data.description,
-            company_id=company_id,
+        quiz = await self.repo.create_quiz(
+            session, quiz_data.title, quiz_data.description, company_id
         )
-        session.add(quiz)
-        await session.flush()
 
         if len(quiz_data.questions) < 2:
             raise FewQuestionsException()
 
         for q in quiz_data.questions:
-            question = QuestionModel(
-                title=q.title,
-                options=q.options,
-                correct_answers=q.correct_answers,
-                quiz_id=quiz.id,
+            await self.repo.create_question(
+                session, quiz.id, q.title, q.options, q.correct_answers
             )
-            session.add(question)
-            
+
         for q in quiz_data.questions:
             if len(q.options) < 2:
                 raise FewOptionsException()
 
-
-        await session.commit()
-        await session.refresh(quiz)
+        await self.repo.update(session, quiz)
 
         return quiz
 
