@@ -22,7 +22,6 @@ from app.core.base_exception import (
 )
 from app.models.company_invite_request_model import InviteStatus
 from app.models.company_user_role_model import CompanyUserRoleModel, RoleEnum
-from app.models.question_model import QuestionModel
 from app.models.quiz_model import QuizModel
 from app.models.user_model import UserModel
 from app.repository.companies_repository import CompaniesRepository
@@ -438,11 +437,11 @@ class CompaniesService:
         if company_id not in owner_admin_company_ids:
             raise OwnerAndAdminOnlyActionError()
 
-        quiz = await self.repo.get(QuizModel, quiz_id)
+        quiz = await self.repo.get_quiz_by_id_and_company(session, quiz_id, company_id)
         if not quiz or quiz.company_id != company_id:
             raise QuizNotFoundException()
 
-        question = await self.repo.get(QuestionModel, question_id)
+        question = await self.repo.get_question_by_id(session, question_id, quiz_id)
         if not question or question.quiz_id != quiz_id:
             raise QuestionNotFoundException()
 
@@ -522,6 +521,8 @@ class CompaniesService:
             setattr(question, field, value)
 
         await self.repo.update(session, question)
+
+        return {"message": "Sucessfully updated question"}
 
     async def company_all_quizzes(
         self, company_id: UUID, session: AsyncSession, limit: int = 10, offset: int = 0
