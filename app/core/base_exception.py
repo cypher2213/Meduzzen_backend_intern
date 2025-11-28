@@ -134,6 +134,13 @@ class OwnerAndAdminOnlyActionError(BaseServiceError):
         )
 
 
+class FewOptionsException(BaseServiceError):
+    def __init__(self):
+        super().__init__(
+            "The question must have at least 2 answer options.", status_code=400
+        )
+
+
 class FewQuestionsException(BaseServiceError):
     def __init__(self):
         super().__init__("You need to provide at least two questions", status_code=400)
