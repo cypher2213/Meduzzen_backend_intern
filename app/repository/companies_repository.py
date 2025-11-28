@@ -1,5 +1,6 @@
-from uuid import UUID
 from typing import List
+from uuid import UUID
+
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -212,18 +213,16 @@ class CompaniesRepository(AsyncBaseRepository[CompanyModel]):
             .limit(limit)
         )
         return result.scalars().all()
-    
-    async def create_quiz(self, session: AsyncSession, title: str, description: str, company_id: UUID) -> QuizModel:
-        quiz = QuizModel(
-            title=title,
-            description=description,
-            company_id=company_id
-        )
+
+    async def create_quiz(
+        self, session: AsyncSession, title: str, description: str, company_id: UUID
+    ) -> QuizModel:
+        quiz = QuizModel(title=title, description=description, company_id=company_id)
         session.add(quiz)
         await session.commit()
         await session.refresh(quiz)
         return quiz
-    
+
     async def create_question(
         self,
         session: AsyncSession,
@@ -243,3 +242,10 @@ class CompaniesRepository(AsyncBaseRepository[CompanyModel]):
         await session.refresh(question)
         return question
 
+    async def get_quiz_by_id_and_company(
+        self, session: AsyncSession, quiz_id: UUID, company_id: UUID
+    ) -> QuizModel | None:
+        quiz = await session.get(QuizModel, quiz_id)
+        if quiz and quiz.company_id == company_id:
+            return quiz
+        return None
