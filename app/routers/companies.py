@@ -11,6 +11,9 @@ from app.schemas.company_schema import (
     CompanySchema,
     CompanyUpdate,
     InviteSentSchema,
+    QuestionUpdate,
+    QuizCreate,
+    QuizUpdate,
 )
 from app.services.companies_service import companies_service
 from app.utils.user_util import user_connect
@@ -177,4 +180,72 @@ async def remove_admin_role(
 ):
     return await companies_service.admin_role_remove(
         user_id, company_id, current_user, session
+    )
+
+
+# ==========================================Quizzes MANAGEMENT=============================
+@router.post("/quiz/{company_id}")
+async def create_company_quiz(
+    company_id: UUID,
+    quiz_data: QuizCreate,
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await companies_service.company_create_quiz(
+        company_id, quiz_data, current_user, session
+    )
+
+
+@router.delete("/quiz/{company_id}/{quiz_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_company_quiz(
+    company_id: UUID,
+    quiz_id: UUID,
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await companies_service.company_delete_quiz(
+        company_id, quiz_id, current_user, session
+    )
+
+
+@router.delete(
+    "/question/{company_id}/{quiz_id}/{question_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_quiz_question(
+    company_id: UUID,
+    quiz_id: UUID,
+    question_id: UUID,
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await companies_service.company_delete_question(
+        company_id, quiz_id, question_id, current_user, session
+    )
+
+
+@router.patch("/quiz/{company_id}/{quiz_id}")
+async def edit_company_quiz(
+    company_id: UUID,
+    quiz_id: UUID,
+    quiz_data: QuizUpdate,
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await companies_service.company_edit_quiz(
+        company_id, quiz_id, quiz_data, current_user, session
+    )
+
+
+@router.patch("/question/{company_id}/{quiz_id}/{question_id}")
+async def edit_quiz_question(
+    company_id: UUID,
+    quiz_id: UUID,
+    question_id: UUID,
+    question_data: QuestionUpdate,
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await companies_service.quiz_edit_question(
+        company_id, quiz_id, question_id, question_data, current_user, session
     )

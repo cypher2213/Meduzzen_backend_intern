@@ -60,3 +60,26 @@ class UserWithRoleSchema(BaseModel):
 
 class UsersWithRolesResponse(BaseModel):
     users: List[UserWithRoleSchema]
+
+
+class QuestionCreate(BaseModel):
+    title: str
+    options: List[str]
+    correct_answers: List[int]
+
+
+class QuizCreate(BaseModel):
+    title: str
+    description: str
+    questions: List[QuestionCreate]
+
+
+class QuizUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+
+
+class QuestionUpdate(BaseModel):
+    title: Optional[str] = None
+    options: Optional[List[str]] = None
+    correct_answers: Optional[List[int]] = None

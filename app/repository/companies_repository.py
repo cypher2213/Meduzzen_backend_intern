@@ -10,6 +10,8 @@ from app.models.company_invite_request_model import (
 )
 from app.models.company_model import CompanyModel
 from app.models.company_user_role_model import CompanyUserRoleModel, RoleEnum
+from app.models.question_model import QuestionModel
+from app.models.quiz_model import QuizModel
 from app.models.user_model import UserModel
 from app.repository.base_repository import AsyncBaseRepository
 
@@ -154,10 +156,6 @@ class CompaniesRepository(AsyncBaseRepository[CompanyModel]):
         return result.scalars().all()
 
     async def get_by_id(self, session: AsyncSession, user_id: UUID):
-        result = await session.execute(select(UserModel).where(UserModel.id == user_id))
-        return result.scalar_one_or_none()
-
-    async def get_by_id(self, session: AsyncSession, user_id: UUID):
         return await session.get(UserModel, user_id)
 
     async def get_company_by_id(self, session: AsyncSession, company_id: UUID):
@@ -174,3 +172,30 @@ class CompaniesRepository(AsyncBaseRepository[CompanyModel]):
         )
         result = await session.execute(admins)
         return result.scalars().all()
+
+    async def get_owner_or_admin_company_ids(self, db: AsyncSession, user_id):
+        result = await db.execute(
+            select(CompanyUserRoleModel.company_id).where(
+                CompanyUserRoleModel.user_id == user_id,
+                CompanyUserRoleModel.role.in_([RoleEnum.OWNER, RoleEnum.ADMIN]),
+            )
+        )
+        return result.scalars().all()
+
+    async def get_quiz_by_id(
+        self, session: AsyncSession, quiz_id: UUID, company_id: UUID
+    ):
+        stmt = select(QuizModel).where(
+            QuizModel.id == quiz_id, QuizModel.company_id == company_id
+        )
+        result = await session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def get_question_by_id(
+        self, session: AsyncSession, question_id: UUID, quiz_id: UUID
+    ):
+        stmt = select(QuestionModel).where(
+            QuestionModel.id == question_id, QuestionModel.quiz_id == quiz_id
+        )
+        result = await session.execute(stmt)
+        return result.scalar_one_or_none()
