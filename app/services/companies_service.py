@@ -33,6 +33,7 @@ from app.schemas.company_schema import (
     QuestionUpdate,
     QuizCreate,
     QuizUpdate,
+    QuizzesList,
     UserWithRoleSchema,
 )
 
@@ -525,6 +526,19 @@ class CompaniesService:
             setattr(question, field, value)
 
         await self.repo.update(session, question)
+
+    async def company_all_quizzes(
+        self, company_id: UUID, session: AsyncSession, limit: int = 10, offset: int = 0
+    ):
+        company = await self.repo.get_company_by_id(session, company_id)
+        if not company:
+            raise CompanyNotFoundError(company_id)
+
+        quizzes = await self.repo.get_all_quizzes(company_id, session, limit, offset)
+
+        return [
+            QuizzesList.model_validate(quiz).model_dump(mode="json") for quiz in quizzes
+        ]
 
 
 companies_service = CompaniesService(CompaniesRepository())
