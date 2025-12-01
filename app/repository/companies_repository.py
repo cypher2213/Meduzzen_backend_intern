@@ -1,7 +1,6 @@
-from typing import List
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import func, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -223,24 +222,14 @@ class CompaniesRepository(AsyncBaseRepository[CompanyModel]):
         await session.refresh(quiz)
         return quiz
 
-    async def create_question(
+    async def create_questions(
         self,
         session: AsyncSession,
-        quiz_id: UUID,
-        title: str,
-        options: List[str],
-        correct_answers: List[int],
-    ) -> QuestionModel:
-        question = QuestionModel(
-            title=title,
-            options=options,
-            correct_answers=correct_answers,
-            quiz_id=quiz_id,
-        )
-        session.add(question)
+        questions_list: list[dict],
+    ):
+        stmt = insert(QuestionModel).values(questions_list)
+        await session.execute(stmt)
         await session.commit()
-        await session.refresh(question)
-        return question
 
     async def get_quiz_by_id_and_company(
         self, session: AsyncSession, quiz_id: UUID, company_id: UUID
