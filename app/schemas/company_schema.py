@@ -62,7 +62,7 @@ class UsersWithRolesResponse(BaseModel):
     users: List[UserWithRoleSchema]
 
 
-class QuestionCreate(BaseModel):
+class Questions(BaseModel):
     title: str
     options: List[str]
     correct_answers: List[int]
@@ -71,7 +71,7 @@ class QuestionCreate(BaseModel):
 class QuizCreate(BaseModel):
     title: str
     description: str
-    questions: List[QuestionCreate]
+    questions: List[Questions]
 
 
 class QuizUpdate(BaseModel):
@@ -100,3 +100,10 @@ class QuizzesList(BaseModel):
     questions: List[QuestionList]
 
     model_config = {"from_attributes": True}
+
+
+class QuestionCreateSchema(BaseModel):
+    quiz_id: UUID
+    title: str
+    options: List[str]
+    correct_answers: List[int]
