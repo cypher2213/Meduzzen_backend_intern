@@ -30,6 +30,7 @@ from app.schemas.company_schema import (
     CompanySchema,
     CompanyUpdate,
     InviteSentSchema,
+    QuestionCreateSchema,
     QuestionUpdate,
     QuizCreate,
     QuizUpdate,
@@ -374,21 +375,28 @@ class CompaniesService:
         if company_id not in owner_admin_company_ids:
             raise OwnerAndAdminOnlyActionError()
 
-        quiz = await self.repo.create_quiz(
-            session, quiz_data.title, quiz_data.description, company_id
-        )
-
         if len(quiz_data.questions) < 2:
             raise FewQuestionsException()
 
         for q in quiz_data.questions:
-            await self.repo.create_question(
-                session, quiz.id, q.title, q.options, q.correct_answers
-            )
-
-        for q in quiz_data.questions:
             if len(q.options) < 2:
                 raise FewOptionsException()
+
+        quiz = await self.repo.create_quiz(
+            session, quiz_data.title, quiz_data.description, company_id
+        )
+
+        questions_list = [
+            QuestionCreateSchema(
+                quiz_id=quiz.id,
+                title=q.title,
+                options=q.options,
+                correct_answers=q.correct_answers,
+            ).model_dump()
+            for q in quiz_data.questions
+        ]
+
+        await self.repo.create_questions(session, questions_list)
 
         await self.repo.update(session, quiz)
 
