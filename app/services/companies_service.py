@@ -4,18 +4,25 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.base_exception import (
     CompanyNotFoundError,
+    FewOptionsException,
+    FewQuestionsException,
     InvalidInviteStatusError,
     InviteInvalidOptionError,
     InviteNotFoundError,
     MemberNotFoundError,
+    NotEnoughOptionsException,
+    OwnerAndAdminOnlyActionError,
     OwnerOnlyActionError,
     PermissionDeniedError,
+    QuestionNotFoundException,
+    QuizNotFoundException,
     UserAlreadyAdminException,
     UserAlreadyOwnerException,
     UserNotFoundError,
 )
 from app.models.company_invite_request_model import InviteStatus
 from app.models.company_user_role_model import CompanyUserRoleModel, RoleEnum
+from app.models.quiz_model import QuizModel
 from app.models.user_model import UserModel
 from app.repository.companies_repository import CompaniesRepository
 from app.schemas.company_schema import (
@@ -23,6 +30,11 @@ from app.schemas.company_schema import (
     CompanySchema,
     CompanyUpdate,
     InviteSentSchema,
+    QuestionCreateSchema,
+    QuestionUpdate,
+    QuizCreate,
+    QuizUpdate,
+    QuizzesList,
     UserWithRoleSchema,
 )
 
@@ -343,6 +355,195 @@ class CompaniesService:
 
         await self.repo.update(session, user_role)
         return {"message": f"User with id {user_id} is not admin anymore"}
+
+    # =================================QUIZZES MANAGMENT===========================================
+
+    async def company_create_quiz(
+        self,
+        company_id: UUID,
+        quiz_data: QuizCreate,
+        current_user: UserModel,
+        session: AsyncSession,
+    ):
+        company = await self.repo.get_company_by_id(session, company_id)
+        if not company:
+            raise CompanyNotFoundError(company_id)
+
+        owner_admin_company_ids = await self.repo.get_owner_or_admin_company_ids(
+            session, current_user.id
+        )
+        if company_id not in owner_admin_company_ids:
+            raise OwnerAndAdminOnlyActionError()
+
+        if len(quiz_data.questions) < 2:
+            raise FewQuestionsException()
+
+        for q in quiz_data.questions:
+            if len(q.options) < 2:
+                raise FewOptionsException()
+
+        quiz = await self.repo.create_quiz(
+            session, quiz_data.title, quiz_data.description, company_id
+        )
+
+        questions_list = [
+            QuestionCreateSchema(
+                quiz_id=quiz.id,
+                title=q.title,
+                options=q.options,
+                correct_answers=q.correct_answers,
+            ).model_dump()
+            for q in quiz_data.questions
+        ]
+
+        await self.repo.create_questions(session, questions_list)
+
+        await self.repo.update(session, quiz)
+
+        return quiz
+
+    async def company_delete_quiz(
+        self,
+        company_id: UUID,
+        quiz_id: UUID,
+        current_user: UserModel,
+        session: AsyncSession,
+    ):
+        company = await self.repo.get_company_by_id(session, company_id)
+        if not company:
+            raise CompanyNotFoundError(company_id)
+
+        owner_admin_company_ids = await self.repo.get_owner_or_admin_company_ids(
+            session, current_user.id
+        )
+        if company_id not in owner_admin_company_ids:
+            raise OwnerAndAdminOnlyActionError()
+
+        quiz = await session.get(QuizModel, quiz_id)
+        if not quiz or quiz.company_id != company_id:
+            raise QuizNotFoundException()
+
+        await self.repo.delete(session, quiz)
+
+        return {"message": "Quiz deleted successfully"}
+
+    async def company_delete_question(
+        self,
+        company_id: UUID,
+        quiz_id: UUID,
+        question_id: UUID,
+        current_user: UserModel,
+        session: AsyncSession,
+    ):
+        company = await self.repo.get_company_by_id(session, company_id)
+        if not company:
+            raise CompanyNotFoundError(company_id)
+
+        owner_admin_company_ids = await self.repo.get_owner_or_admin_company_ids(
+            session, current_user.id
+        )
+        if company_id not in owner_admin_company_ids:
+            raise OwnerAndAdminOnlyActionError()
+
+        quiz = await self.repo.get_quiz_by_id_and_company(session, quiz_id, company_id)
+        if not quiz or quiz.company_id != company_id:
+            raise QuizNotFoundException()
+
+        question = await self.repo.get_question_by_id(session, question_id, quiz_id)
+        if not question or question.quiz_id != quiz_id:
+            raise QuestionNotFoundException()
+
+        await self.repo.delete(session, question)
+        return {"message": "Question deleted successfully"}
+
+    async def company_edit_quiz(
+        self,
+        company_id: UUID,
+        quiz_id: UUID,
+        quiz_data: QuizUpdate,
+        current_user: UserModel,
+        session: AsyncSession,
+    ):
+        company = await self.repo.get_company_by_id(session, company_id)
+        if not company:
+            raise CompanyNotFoundError(company_id)
+
+        owner_admin_company_ids = await self.repo.get_owner_or_admin_company_ids(
+            session, current_user.id
+        )
+        if company_id not in owner_admin_company_ids:
+            raise OwnerAndAdminOnlyActionError()
+
+        quiz = await self.repo.get_quiz_by_id(session, quiz_id, company_id)
+        if not quiz or quiz.company_id != company_id:
+            raise QuizNotFoundException()
+
+        update_data = quiz_data.model_dump(exclude_unset=True)
+        if not update_data:
+            return quiz
+
+        for field, value in update_data.items():
+            setattr(quiz, field, value)
+
+        await self.repo.update(session, quiz)
+
+        return quiz
+
+    async def quiz_edit_question(
+        self,
+        company_id: UUID,
+        quiz_id: UUID,
+        question_id: UUID,
+        question_data: QuestionUpdate,
+        current_user: UserModel,
+        session: AsyncSession,
+    ):
+        company = await self.repo.get_company_by_id(session, company_id)
+        if not company:
+            raise CompanyNotFoundError(company_id)
+
+        owner_admin_company_ids = await self.repo.get_owner_or_admin_company_ids(
+            session, current_user.id
+        )
+        if company_id not in owner_admin_company_ids:
+            raise OwnerAndAdminOnlyActionError()
+
+        quiz = await self.repo.get_quiz_by_id(session, quiz_id, company_id)
+        if not quiz or quiz.company_id != company_id:
+            raise QuizNotFoundException()
+
+        question = await self.repo.get_question_by_id(session, question_id, quiz_id)
+        if not question or question.quiz_id != quiz_id:
+            raise QuestionNotFoundException()
+
+        update_data = question_data.model_dump(exclude_unset=True)
+        if not update_data:
+            return question
+
+        if "options" in update_data:
+            options = update_data["options"]
+            if not options or len(options) < 2:
+                raise NotEnoughOptionsException()
+
+        for field, value in update_data.items():
+            setattr(question, field, value)
+
+        await self.repo.update(session, question)
+
+        return {"message": "Sucessfully updated question"}
+
+    async def company_all_quizzes(
+        self, company_id: UUID, session: AsyncSession, limit: int = 10, offset: int = 0
+    ):
+        company = await self.repo.get_company_by_id(session, company_id)
+        if not company:
+            raise CompanyNotFoundError(company_id)
+
+        quizzes = await self.repo.get_all_quizzes(company_id, session, limit, offset)
+
+        return [
+            QuizzesList.model_validate(quiz).model_dump(mode="json") for quiz in quizzes
+        ]
 
 
 companies_service = CompaniesService(CompaniesRepository())

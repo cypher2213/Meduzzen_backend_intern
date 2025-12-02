@@ -11,6 +11,7 @@ from app.models.uuid_mixin import UUIDMixin
 
 if TYPE_CHECKING:
     from app.models.company_user_role_model import CompanyUserRoleModel
+    from app.models.quiz_model import QuizModel
 
 
 class CompanyModel(Base, TimestampMixin, UUIDMixin):
@@ -19,5 +20,8 @@ class CompanyModel(Base, TimestampMixin, UUIDMixin):
     description: Mapped[str] = mapped_column(String, nullable=True)
     is_public: Mapped[bool] = mapped_column(Boolean, nullable=False)
     roles: Mapped[List["CompanyUserRoleModel"]] = relationship(
+        back_populates="company", cascade="all, delete-orphan"
+    )
+    quizzes: Mapped[List["QuizModel"]] = relationship(
         back_populates="company", cascade="all, delete-orphan"
     )

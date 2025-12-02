@@ -60,3 +60,50 @@ class UserWithRoleSchema(BaseModel):
 
 class UsersWithRolesResponse(BaseModel):
     users: List[UserWithRoleSchema]
+
+
+class Questions(BaseModel):
+    title: str
+    options: List[str]
+    correct_answers: List[int]
+
+
+class QuizCreate(BaseModel):
+    title: str
+    description: str
+    questions: List[Questions]
+
+
+class QuizUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+
+
+class QuestionUpdate(BaseModel):
+    title: Optional[str] = None
+    options: Optional[List[str]] = None
+    correct_answers: Optional[List[int]] = None
+
+
+class QuestionList(BaseModel):
+    id: UUID
+    title: str
+    options: List[str]
+
+    model_config = {"from_attributes": True}
+
+
+class QuizzesList(BaseModel):
+    id: UUID
+    title: str
+    description: str
+    questions: List[QuestionList]
+
+    model_config = {"from_attributes": True}
+
+
+class QuestionCreateSchema(BaseModel):
+    quiz_id: UUID
+    title: str
+    options: List[str]
+    correct_answers: List[int]
