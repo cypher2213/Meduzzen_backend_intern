@@ -184,3 +184,8 @@ class UserAlreadyOwnerException(BaseServiceError):
         super().__init__(
             "This user is owner and cannot become an admin", status_code=400
         )
+
+
+class AlreadyAnsweredException(BaseServiceError):
+    def __init__(self):
+        super().__init__("You already answered to that question.", status_code=403)
