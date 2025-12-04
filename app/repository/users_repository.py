@@ -10,6 +10,7 @@ from app.models.company_invite_request_model import (
 )
 from app.models.company_model import CompanyModel
 from app.models.company_user_role_model import CompanyUserRoleModel, RoleEnum
+from app.models.results import QuizResults
 from app.models.user_model import UserModel
 from app.repository.base_repository import AsyncBaseRepository
 
@@ -105,3 +106,48 @@ class UserRepository(AsyncBaseRepository[UserModel]):
         await db.commit()
         await db.refresh(request_obj)
         return request_obj
+
+    async def get_result_by_user_question(
+        self, session: AsyncSession, user_id: UUID, question_id: UUID
+    ):
+        stmt = select(QuizResults).where(
+            QuizResults.user_id == user_id, QuizResults.question_id == question_id
+        )
+        result = await session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def create_result(
+        self, session: AsyncSession, result: QuizResults
+    ) -> QuizResults:
+        session.add(result)
+        await session.commit()
+        await session.refresh(result)
+        return result
+
+    async def get_user_average_score(
+        self, session: AsyncSession, user_id: UUID, company_id: UUID | None = None
+    ) -> float:
+        stmt = (
+            select(QuizResults)
+            .join(QuizResults.quiz)
+            .where(QuizResults.user_id == user_id, QuizResults.is_done)
+        )
+        if company_id:
+            stmt = stmt.where(QuizResults.company_id == company_id)
+
+        results = (await session.execute(stmt)).scalars().all()
+
+        total_correct = 0
+        total_answered = 0
+
+        for res in results:
+            question = res.question
+            if hasattr(res, "selected_answers"):
+                if set(res.selected_answers) == set(question.correct_answers):
+                    total_correct += 1
+            total_answered += 1
+
+        if total_answered == 0:
+            return 0.0
+
+        return total_correct / total_answered * 100
