@@ -58,3 +58,7 @@ class UpdateUserResponseSchema(BaseModel):
     id: UUID
     name: str
     email: str
+
+
+class AnswerUserSchema(BaseModel):
+    selected_options: List[int]
