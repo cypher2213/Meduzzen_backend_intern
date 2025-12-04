@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 from sqlalchemy import ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import ARRAY
@@ -11,6 +11,7 @@ from app.models.uuid_mixin import UUIDMixin
 
 if TYPE_CHECKING:
     from app.models.quiz_model import QuizModel
+    from app.models.results import QuizResults
 
 
 class QuestionModel(Base, UUIDMixin):
@@ -24,3 +25,6 @@ class QuestionModel(Base, UUIDMixin):
     )
 
     quiz: Mapped["QuizModel"] = relationship(back_populates="questions")
+    quiz_results: Mapped[List["QuizResults"]] = relationship(
+        "QuizResults", back_populates="question", cascade="all, delete-orphan"
+    )

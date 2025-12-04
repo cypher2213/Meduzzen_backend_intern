@@ -10,6 +10,7 @@ from app.models.base import Base
 if TYPE_CHECKING:
     from app.models.question_model import QuestionModel
     from app.models.company_model import CompanyModel
+    from app.models.results import QuizResults
 
 from uuid import UUID
 
@@ -31,3 +32,6 @@ class QuizModel(Base, UUIDMixin):
         nullable=False,
     )
     company: Mapped["CompanyModel"] = relationship(back_populates="quizzes")
+    quiz_results: Mapped[List["QuizResults"]] = relationship(
+        "QuizResults", back_populates="quiz", cascade="all, delete-orphan"
+    )
