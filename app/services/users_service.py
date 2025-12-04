@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.base_exception import (
+    AlreadyAnsweredException,
     CompanyNotFoundError,
     EmailChangeForbiddenError,
     InvalidCredentialsError,
@@ -14,6 +15,8 @@ from app.core.base_exception import (
     InvitePermissionDeniedError,
     NotCompanyMemberError,
     OwnerCannotLeaveError,
+    QuestionNotFoundException,
+    QuizNotFoundException,
     RequestAlreadyCanceledError,
     RequestNotFoundError,
     RequestPermissionDeniedError,
@@ -23,10 +26,16 @@ from app.core.base_exception import (
 from app.core.logger import logger
 from app.models.company_invite_request_model import InviteStatus, InviteType
 from app.models.company_user_role_model import RoleEnum
+from app.models.results import QuizResults
 from app.models.user_model import UserModel
 from app.repository.users_repository import UserRepository
 from app.schemas.company_schema import RequestSentSchema
-from app.schemas.user_schema import SignUpSchema, UserSchema, UserUpdateSchema
+from app.schemas.user_schema import (
+    AnswerUserSchema,
+    SignUpSchema,
+    UserSchema,
+    UserUpdateSchema,
+)
 from app.utils.jwt_util import (
     create_access_token,
     create_refresh_token,
@@ -229,6 +238,53 @@ class UserService:
         if not user_invites:
             return {"message": "No invites were sent to you"}
         return {"message": "Successfully found invites", "invites": user_invites}
+
+    # ======================== ANSWER THE QUESTION ==============================
+
+    async def question_answer_by_user(
+        self,
+        company_id: UUID,
+        question_id: UUID,
+        quiz_id: UUID,
+        answers: AnswerUserSchema,
+        current_user: UserModel,
+        session: AsyncSession,
+    ):
+        user_role = await self.repo.get_user_role(session, company_id, current_user.id)
+        if not user_role:
+            raise NotCompanyMemberError()
+
+        quiz = await self.repo.get_quiz_by_id(session, quiz_id, company_id)
+        if not quiz or quiz.company_id != company_id:
+            raise QuizNotFoundException()
+
+        question = await self.repo.get_question_by_id(session, question_id, quiz_id)
+        if not question or question.quiz_id != quiz_id:
+            raise QuestionNotFoundException()
+
+        existing_result = await self.repo.get_result_by_user_question(
+            session, current_user.id, question_id
+        )
+        if existing_result and existing_result.is_done:
+            raise AlreadyAnsweredException()
+
+        if len(answers.list) != len(question.options):
+            raise ValueError(
+                "Number of answers provided does not match number of options."
+            )
+
+        new_result = QuizResults(
+            user_id=current_user.id,
+            company_id=company_id,
+            quiz_id=quiz_id,
+            question_id=question_id,
+            is_done=True,
+            selected_answers=answers.list,
+        )
+
+        await self.repo.create_result(session, new_result)
+
+        return {"message": "Your answer was successfully saved."}
 
 
 user_service = UserService(UserRepository())
