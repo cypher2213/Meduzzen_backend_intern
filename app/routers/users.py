@@ -8,6 +8,7 @@ from app.db.session import get_session
 from app.models.user_model import UserModel
 from app.schemas.company_schema import RequestSentSchema
 from app.schemas.user_schema import (
+    AnswerUserSchema,
     LoginResponseSchema,
     RefreshResponseSchema,
     SignInSchema,
@@ -144,3 +145,20 @@ async def user_show_invites(
     session: AsyncSession = Depends(get_session),
 ):
     return await user_service.show_user_invites(current_user, session)
+
+
+# ======================== ANSWER THE QUESTION ==============================
+
+
+@router.post("/me/{company_id}/{question_id}/{quiz_id}")
+async def user_answer_question(
+    company_id: UUID,
+    question_id: UUID,
+    quiz_id: UUID,
+    answers: AnswerUserSchema,
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await user_service.question_answer_by_user(
+        company_id, question_id, quiz_id, answers, current_user, session
+    )
