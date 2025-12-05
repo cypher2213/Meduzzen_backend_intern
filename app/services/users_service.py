@@ -13,7 +13,9 @@ from app.core.base_exception import (
     InviteInvalidOptionError,
     InviteNotFoundError,
     InvitePermissionDeniedError,
+    NoOptionsSelectedError,
     NotCompanyMemberError,
+    OptionIndexOutOfRangeError,
     OwnerCannotLeaveError,
     QuestionNotFoundException,
     QuizNotFoundException,
@@ -21,6 +23,8 @@ from app.core.base_exception import (
     RequestNotFoundError,
     RequestPermissionDeniedError,
     RequestWrongTypeError,
+    SelectedOptionsNotListError,
+    TooManyOptionsSelectedError,
     UserNotFoundError,
 )
 from app.core.logger import logger
@@ -250,6 +254,12 @@ class UserService:
         current_user: UserModel,
         session: AsyncSession,
     ):
+        if not isinstance(answers.selected_options, list):
+            raise SelectedOptionsNotListError()
+
+        if len(answers.selected_options) == 0:
+            raise NoOptionsSelectedError()
+
         user_role = await self.repo.get_user_role(session, company_id, current_user.id)
         if not user_role:
             raise NotCompanyMemberError()
@@ -262,16 +272,19 @@ class UserService:
         if not question or question.quiz_id != quiz_id:
             raise QuestionNotFoundException()
 
+        for i in answers.selected_options:
+            if i < 0 or i >= len(question.options):
+                raise OptionIndexOutOfRangeError(i, len(question.options) - 1)
+
+        if len(answers.selected_options) > len(question.correct_answers):
+            raise TooManyOptionsSelectedError(len(question.correct_answers))
+
         existing_result = await self.repo.get_result_by_user_question(
             session, current_user.id, question_id
         )
+
         if existing_result and existing_result.is_done:
             raise AlreadyAnsweredException()
-
-        if len(answers.list) != len(question.options):
-            raise ValueError(
-                "Number of answers provided does not match number of options."
-            )
 
         new_result = QuizResults(
             user_id=current_user.id,
@@ -279,12 +292,20 @@ class UserService:
             quiz_id=quiz_id,
             question_id=question_id,
             is_done=True,
-            selected_answers=answers.list,
+            selected_answers=answers.selected_options,
         )
 
         await self.repo.create_result(session, new_result)
 
         return {"message": "Your answer was successfully saved."}
+
+    async def get_my_statistic(
+        self,
+        session: AsyncSession,
+        user_id: UUID,
+        company_id: UUID | None = None,
+    ) -> float:
+        return await self.repo.get_user_average_score(session, user_id, company_id)
 
 
 user_service = UserService(UserRepository())
