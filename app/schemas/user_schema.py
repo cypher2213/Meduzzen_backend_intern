@@ -62,3 +62,8 @@ class UpdateUserResponseSchema(BaseModel):
 
 class AnswerUserSchema(BaseModel):
     selected_options: List[int]
+
+
+class UserAverageScoreResponse(BaseModel):
+    average_score: float
+    company_id: UUID | None = None
