@@ -40,6 +40,7 @@ from app.schemas.user_schema import (
     UserSchema,
     UserUpdateSchema,
 )
+from app.services.redis_service import RedisQuizService
 from app.utils.jwt_util import (
     create_access_token,
     create_refresh_token,
@@ -272,6 +273,8 @@ class UserService:
         if not question or question.quiz_id != quiz_id:
             raise QuestionNotFoundException()
 
+        is_correct = set(answers.selected_options) == set(question.correct_answers)
+
         for i in answers.selected_options:
             if i < 0 or i >= len(question.options):
                 raise OptionIndexOutOfRangeError(i, len(question.options) - 1)
@@ -296,6 +299,15 @@ class UserService:
         )
 
         await self.repo.create_result(session, new_result)
+
+        await RedisQuizService.save_quiz_answer(
+            user_id=current_user.id,
+            company_id=company_id,
+            quiz_id=quiz_id,
+            question_id=question_id,
+            selected_answers=answers.selected_options,
+            is_correct=is_correct,
+        )
 
         return {"message": "Your answer was successfully saved."}
 
