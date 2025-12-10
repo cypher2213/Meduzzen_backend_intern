@@ -8,11 +8,13 @@ from app.db.session import get_session
 from app.models.user_model import UserModel
 from app.schemas.company_schema import RequestSentSchema
 from app.schemas.user_schema import (
+    AnswerUserSchema,
     LoginResponseSchema,
     RefreshResponseSchema,
     SignInSchema,
     SignUpSchema,
     UpdateUserResponseSchema,
+    UserAverageScoreResponse,
     UserSchema,
     UserUpdateSchema,
 )
@@ -144,3 +146,43 @@ async def user_show_invites(
     session: AsyncSession = Depends(get_session),
 ):
     return await user_service.show_user_invites(current_user, session)
+
+
+# ======================== ANSWER THE QUESTION ==============================
+
+
+@router.post("/me/answer/{quiz_id}/{question_id}")
+async def user_answer_question(
+    question_id: UUID,
+    quiz_id: UUID,
+    answers: AnswerUserSchema,
+    current_user: UserModel = Depends(user_connect),
+    session: AsyncSession = Depends(get_session),
+):
+    return await user_service.question_answer_by_user(
+        question_id, quiz_id, answers, current_user, session
+    )
+
+
+@router.get("/me/stat", response_model=UserAverageScoreResponse)
+async def get_my_global_statistic(
+    session: AsyncSession = Depends(get_session),
+    current_user: UserModel = Depends(user_connect),
+):
+    score = await user_service.get_my_statistic(
+        session=session,
+        user_id=current_user.id,
+    )
+    return UserAverageScoreResponse(average_score=score, company_id=None)
+
+
+@router.get("/me/stat/{company_id}", response_model=UserAverageScoreResponse)
+async def get_my_company_statistic(
+    company_id: UUID,
+    session: AsyncSession = Depends(get_session),
+    current_user: UserModel = Depends(user_connect),
+):
+    score = await user_service.get_my_statistic(
+        session=session, user_id=current_user.id, company_id=company_id
+    )
+    return UserAverageScoreResponse(average_score=score, company_id=company_id)

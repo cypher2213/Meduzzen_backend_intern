@@ -3,30 +3,52 @@ from uuid import UUID
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.base_exception import (
+from app.core.answers_exceptions import (
+    NoOptionsSelectedError,
+    OptionIndexOutOfRangeError,
+    SelectedOptionsNotListError,
+    TooManyOptionsSelectedError,
+)
+from app.core.company_exceptions import (
     CompanyNotFoundError,
-    EmailChangeForbiddenError,
-    InvalidCredentialsError,
-    InvalidRefreshTokenError,
+    NotCompanyMemberError,
+    OwnerCannotLeaveError,
+)
+from app.core.invites_exceptions import (
     InviteAlreadyProcessedError,
     InviteInvalidOptionError,
     InviteNotFoundError,
     InvitePermissionDeniedError,
-    NotCompanyMemberError,
-    OwnerCannotLeaveError,
+)
+from app.core.logger import logger
+from app.core.quiz_exceptions import (
+    AlreadyAnsweredException,
+    QuestionNotFoundException,
+    QuizNotFoundException,
+)
+from app.core.requests_exceptions import (
     RequestAlreadyCanceledError,
     RequestNotFoundError,
     RequestPermissionDeniedError,
     RequestWrongTypeError,
+)
+from app.core.users_exceptions import (
+    EmailChangeForbiddenError,
+    InvalidCredentialsError,
+    InvalidRefreshTokenError,
     UserNotFoundError,
 )
-from app.core.logger import logger
 from app.models.company_invite_request_model import InviteStatus, InviteType
 from app.models.company_user_role_model import RoleEnum
 from app.models.user_model import UserModel
 from app.repository.users_repository import UserRepository
 from app.schemas.company_schema import RequestSentSchema
-from app.schemas.user_schema import SignUpSchema, UserSchema, UserUpdateSchema
+from app.schemas.user_schema import (
+    AnswerUserSchema,
+    SignUpSchema,
+    UserSchema,
+    UserUpdateSchema,
+)
 from app.utils.jwt_util import (
     create_access_token,
     create_refresh_token,
@@ -229,6 +251,67 @@ class UserService:
         if not user_invites:
             return {"message": "No invites were sent to you"}
         return {"message": "Successfully found invites", "invites": user_invites}
+
+    # ======================== ANSWER THE QUESTION ==============================
+
+    async def question_answer_by_user(
+        self,
+        question_id: UUID,
+        quiz_id: UUID,
+        answers: AnswerUserSchema,
+        current_user: UserModel,
+        session: AsyncSession,
+    ):
+        if not isinstance(answers.selected_options, list):
+            raise SelectedOptionsNotListError()
+
+        if len(answers.selected_options) == 0:
+            raise NoOptionsSelectedError()
+
+        quiz = await self.repo.get_quiz_by_id(session, quiz_id)
+        if not quiz:
+            raise QuizNotFoundException()
+
+        user_role = await self.repo.get_user_role(
+            session, quiz.company_id, current_user.id
+        )
+        if not user_role:
+            raise NotCompanyMemberError()
+
+        question = await self.repo.get_question_by_id(session, question_id, quiz_id)
+        if not question or question.quiz_id != quiz_id:
+            raise QuestionNotFoundException()
+
+        for i in answers.selected_options:
+            if i < 0 or i >= len(question.options):
+                raise OptionIndexOutOfRangeError(i, len(question.options) - 1)
+
+        if len(answers.selected_options) > len(question.correct_answers):
+            raise TooManyOptionsSelectedError(len(question.correct_answers))
+
+        existing_result = await self.repo.get_result_by_user_question(
+            session, current_user.id, question_id
+        )
+
+        if existing_result and existing_result.quiz_result.is_done:
+            raise AlreadyAnsweredException()
+
+        await self.repo.create_result_with_answer(
+            session,
+            user_id=current_user.id,
+            quiz_id=quiz_id,
+            question_id=question_id,
+            selected_options=answers.selected_options,
+        )
+        return {"message": "Your answer was successfully saved."}
+
+    async def get_my_statistic(
+        self,
+        session: AsyncSession,
+        user_id: UUID,
+        company_id: UUID | None = None,
+    ) -> float:
+        return await self.repo.get_user_average_score(session, user_id, company_id)
 
 
 user_service = UserService(UserRepository())

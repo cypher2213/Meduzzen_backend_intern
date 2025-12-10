@@ -2,24 +2,27 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.base_exception import (
+from app.core.company_exceptions import (
     CompanyNotFoundError,
-    FewOptionsException,
-    FewQuestionsException,
+    MemberNotFoundError,
+    OwnerAndAdminOnlyActionError,
+    OwnerOnlyActionError,
+    UserAlreadyAdminException,
+    UserAlreadyOwnerException,
+)
+from app.core.invites_exceptions import (
     InvalidInviteStatusError,
     InviteInvalidOptionError,
     InviteNotFoundError,
-    MemberNotFoundError,
+)
+from app.core.quiz_exceptions import (
+    FewOptionsException,
+    FewQuestionsException,
     NotEnoughOptionsException,
-    OwnerAndAdminOnlyActionError,
-    OwnerOnlyActionError,
-    PermissionDeniedError,
     QuestionNotFoundException,
     QuizNotFoundException,
-    UserAlreadyAdminException,
-    UserAlreadyOwnerException,
-    UserNotFoundError,
 )
+from app.core.users_exceptions import PermissionDeniedError, UserNotFoundError
 from app.models.company_invite_request_model import InviteStatus
 from app.models.company_user_role_model import CompanyUserRoleModel, RoleEnum
 from app.models.quiz_model import QuizModel
