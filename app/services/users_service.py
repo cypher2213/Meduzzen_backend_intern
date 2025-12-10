@@ -3,34 +3,43 @@ from uuid import UUID
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.base_exception import (
-    AlreadyAnsweredException,
+from app.core.answers_exceptions import (
+    NoOptionsSelectedError,
+    OptionIndexOutOfRangeError,
+    SelectedOptionsNotListError,
+    TooManyOptionsSelectedError,
+)
+from app.core.company_exceptions import (
     CompanyNotFoundError,
-    EmailChangeForbiddenError,
-    InvalidCredentialsError,
-    InvalidRefreshTokenError,
+    NotCompanyMemberError,
+    OwnerCannotLeaveError,
+)
+from app.core.invites_exceptions import (
     InviteAlreadyProcessedError,
     InviteInvalidOptionError,
     InviteNotFoundError,
     InvitePermissionDeniedError,
-    NoOptionsSelectedError,
-    NotCompanyMemberError,
-    OptionIndexOutOfRangeError,
-    OwnerCannotLeaveError,
+)
+from app.core.logger import logger
+from app.core.quiz_exceptions import (
+    AlreadyAnsweredException,
     QuestionNotFoundException,
     QuizNotFoundException,
+)
+from app.core.requests_exceptions import (
     RequestAlreadyCanceledError,
     RequestNotFoundError,
     RequestPermissionDeniedError,
     RequestWrongTypeError,
-    SelectedOptionsNotListError,
-    TooManyOptionsSelectedError,
+)
+from app.core.users_exceptions import (
+    EmailChangeForbiddenError,
+    InvalidCredentialsError,
+    InvalidRefreshTokenError,
     UserNotFoundError,
 )
-from app.core.logger import logger
 from app.models.company_invite_request_model import InviteStatus, InviteType
 from app.models.company_user_role_model import RoleEnum
-from app.models.results import QuizResults
 from app.models.user_model import UserModel
 from app.repository.users_repository import UserRepository
 from app.schemas.company_schema import RequestSentSchema
@@ -247,7 +256,6 @@ class UserService:
 
     async def question_answer_by_user(
         self,
-        company_id: UUID,
         question_id: UUID,
         quiz_id: UUID,
         answers: AnswerUserSchema,
@@ -260,13 +268,15 @@ class UserService:
         if len(answers.selected_options) == 0:
             raise NoOptionsSelectedError()
 
-        user_role = await self.repo.get_user_role(session, company_id, current_user.id)
+        quiz = await self.repo.get_quiz_by_id(session, quiz_id)
+        if not quiz:
+            raise QuizNotFoundException()
+
+        user_role = await self.repo.get_user_role(
+            session, quiz.company_id, current_user.id
+        )
         if not user_role:
             raise NotCompanyMemberError()
-
-        quiz = await self.repo.get_quiz_by_id(session, quiz_id, company_id)
-        if not quiz or quiz.company_id != company_id:
-            raise QuizNotFoundException()
 
         question = await self.repo.get_question_by_id(session, question_id, quiz_id)
         if not question or question.quiz_id != quiz_id:
@@ -283,20 +293,16 @@ class UserService:
             session, current_user.id, question_id
         )
 
-        if existing_result and existing_result.is_done:
+        if existing_result and existing_result.quiz_result.is_done:
             raise AlreadyAnsweredException()
 
-        new_result = QuizResults(
+        await self.repo.create_result_with_answer(
+            session,
             user_id=current_user.id,
-            company_id=company_id,
             quiz_id=quiz_id,
             question_id=question_id,
-            is_done=True,
-            selected_answers=answers.selected_options,
+            selected_options=answers.selected_options,
         )
-
-        await self.repo.create_result(session, new_result)
-
         return {"message": "Your answer was successfully saved."}
 
     async def get_my_statistic(
