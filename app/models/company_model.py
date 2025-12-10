@@ -12,7 +12,6 @@ from app.models.uuid_mixin import UUIDMixin
 if TYPE_CHECKING:
     from app.models.company_user_role_model import CompanyUserRoleModel
     from app.models.quiz_model import QuizModel
-    from app.models.results import QuizResults
 
 
 class CompanyModel(Base, TimestampMixin, UUIDMixin):
@@ -25,7 +24,4 @@ class CompanyModel(Base, TimestampMixin, UUIDMixin):
     )
     quizzes: Mapped[List["QuizModel"]] = relationship(
         back_populates="company", cascade="all, delete-orphan"
-    )
-    quiz_results: Mapped[List["QuizResults"]] = relationship(
-        "QuizResults", back_populates="company", cascade="all, delete-orphan"
     )

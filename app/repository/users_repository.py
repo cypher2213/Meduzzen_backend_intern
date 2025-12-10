@@ -2,7 +2,7 @@ from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 
 from app.models.company_invite_request_model import (
     CompanyInviteRequestModel,
@@ -12,6 +12,7 @@ from app.models.company_invite_request_model import (
 from app.models.company_model import CompanyModel
 from app.models.company_user_role_model import CompanyUserRoleModel, RoleEnum
 from app.models.question_model import QuestionModel
+from app.models.quiz_answer_model import QuizAnswer
 from app.models.quiz_model import QuizModel
 from app.models.results import QuizResults
 from app.models.user_model import UserModel
@@ -110,21 +111,24 @@ class UserRepository(AsyncBaseRepository[UserModel]):
         await db.refresh(request_obj)
         return request_obj
 
-    async def get_result_by_user_question(
-        self, session: AsyncSession, user_id: UUID, question_id: UUID
-    ):
-        stmt = select(QuizResults).where(
-            QuizResults.user_id == user_id, QuizResults.question_id == question_id
+    async def get_result_by_user_question(self, session, user_id, question_id):
+        stmt = (
+            select(QuizAnswer)
+            .options(selectinload(QuizAnswer.quiz_result))
+            .join(QuizAnswer.quiz_result)
+            .where(
+                QuizResults.user_id == user_id, QuizAnswer.question_id == question_id
+            )
         )
         result = await session.execute(stmt)
         return result.scalar_one_or_none()
 
     async def get_quiz_by_id(
-        self, session: AsyncSession, quiz_id: UUID, company_id: UUID
+        self, session: AsyncSession, quiz_id: UUID, company_id: UUID | None = None
     ):
-        stmt = select(QuizModel).where(
-            QuizModel.id == quiz_id, QuizModel.company_id == company_id
-        )
+        stmt = select(QuizModel).where(QuizModel.id == quiz_id)
+        if company_id:
+            stmt = stmt.where(QuizModel.company_id == company_id)
         result = await session.execute(stmt)
         return result.scalar_one_or_none()
 
@@ -137,24 +141,38 @@ class UserRepository(AsyncBaseRepository[UserModel]):
         result = await session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def create_result(
-        self, session: AsyncSession, result: QuizResults
-    ) -> QuizResults:
-        session.add(result)
+    async def create_result_with_answer(
+        self,
+        session: AsyncSession,
+        user_id: UUID,
+        quiz_id: UUID,
+        question_id: UUID,
+        selected_options: list[int],
+    ) -> tuple[QuizResults, QuizAnswer]:
+        quiz_result = QuizResults(user_id=user_id, quiz_id=quiz_id, is_done=True)
+
+        quiz_answer = QuizAnswer(
+            quiz_result=quiz_result,
+            question_id=question_id,
+            selected_answers=selected_options,
+        )
+
+        session.add_all([quiz_result, quiz_answer])
         await session.commit()
-        await session.refresh(result)
-        return result
+        await session.refresh(quiz_result)
+        await session.refresh(quiz_answer)
 
     async def get_user_average_score(
         self, session: AsyncSession, user_id: UUID, company_id: UUID | None = None
     ) -> float:
         stmt = (
-            select(QuizResults)
-            .options(joinedload(QuizResults.question))
+            select(QuizAnswer)
+            .join(QuizAnswer.quiz_result)
+            .options(joinedload(QuizAnswer.question))
             .where(QuizResults.user_id == user_id, QuizResults.is_done)
         )
         if company_id:
-            stmt = stmt.where(QuizResults.company_id == company_id)
+            stmt = stmt.join(QuizResults.quiz).where(QuizModel.company_id == company_id)
 
         results = (await session.execute(stmt)).scalars().all()
 

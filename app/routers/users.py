@@ -151,9 +151,8 @@ async def user_show_invites(
 # ======================== ANSWER THE QUESTION ==============================
 
 
-@router.post("/me/{company_id}/{quiz_id}/{question_id}")
+@router.post("/me/answer/{quiz_id}/{question_id}")
 async def user_answer_question(
-    company_id: UUID,
     question_id: UUID,
     quiz_id: UUID,
     answers: AnswerUserSchema,
@@ -161,7 +160,7 @@ async def user_answer_question(
     session: AsyncSession = Depends(get_session),
 ):
     return await user_service.question_answer_by_user(
-        company_id, question_id, quiz_id, answers, current_user, session
+        question_id, quiz_id, answers, current_user, session
     )
 
 

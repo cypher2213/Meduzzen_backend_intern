@@ -7,6 +7,7 @@ from app.core.config import settings
 from app.models.base import Base
 from app.models.company_model import CompanyModel  # noqa
 from app.models.question_model import QuestionModel  # noqa
+from app.models.quiz_answer_model import QuizAnswer  # noqa
 from app.models.quiz_model import QuizModel  # noqa
 from app.models.results import QuizResults  # noqa
 from app.models.user_model import UserModel  # noqa
